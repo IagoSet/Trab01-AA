@@ -99,6 +99,9 @@ class AuctionMonitor:
                     await asyncio.sleep(self.interval)
                     
                     try:
+                        # Log de batimento cardíaco para mostrar que está ativo
+                        self.logger.info(f"Verificando... (O preço continua: {self.current_value})")
+                        
                         # Recarrega ou re-seleciona para garantir frescor do dado (SPA-friendly)
                         element = await page.query_selector(self.selector)
                         if element:
