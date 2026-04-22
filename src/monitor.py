@@ -18,49 +18,82 @@ class AuctionMonitor:
     async def discover_price_elements(self):
         """
         Tenta encontrar automaticamente elementos que pareçam ser preços na página.
-        Retorna uma lista de dicionários com 'text' e 'xpath'.
+        Utiliza um sistema de pontuação (scoring) para priorizar o preço principal.
         """
         async with async_playwright() as p:
-            # Configurações de camuflagem para parecer um navegador real
             browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                viewport={'width': 1920, 'height': 1080},
-                extra_http_headers={"Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"}
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
             page = await context.new_page()
             try:
                 await page.goto(self.url, wait_until="networkidle", timeout=60000)
                 
-                # Script JS para encontrar elementos que contenham padrões de preço
+                # Algoritmo de Scoring Avançado em JavaScript
                 candidates = await page.evaluate("""
                     () => {
                         const results = [];
-                        const regex = /(R\\$\\s?|\\$|€)\\s?\\d+[.,]?\\d*/i;
+                        const priceRegex = /(R\\$\\s?|\\$|€)?\\s?\\d+([.,]\\d{2,3})*([.,]\\d{2})?/i;
+                        const keywords = ['price', 'valor', 'offer', 'sale', 'current', 'main', 'pix', 'boleto'];
                         
-                        function getXPath(element) {
-                            if (element.id !== '') return `//*[@id="${element.id}"]`;
-                            if (element === document.body) return '/html/body';
-                            let ix = 0;
-                            const siblings = element.parentNode.childNodes;
-                            for (let i = 0; i < siblings.length; i++) {
-                                const sibling = siblings[i];
-                                if (sibling === element) return getXPath(element.parentNode) + '/' + element.tagName.toLowerCase() + '[' + (ix + 1) + ']';
-                                if (sibling.nodeType === 1 && sibling.tagName === element.tagName) ix++;
+                        function getRobustXPath(element) {
+                            if (element.id) return `//*[@id="${element.id}"]`;
+                            const attrs = ['data-test', 'data-testid', 'data-qa', 'itemprop'];
+                            for (const attr of attrs) {
+                                if (element.getAttribute(attr)) {
+                                    return `//${element.tagName.toLowerCase()}[@${attr}="${element.getAttribute(attr)}"]`;
+                                }
                             }
+                            // Fallback para XPath hierárquico curto
+                            let path = '';
+                            let current = element;
+                            for (let i = 0; i < 3 && current && current !== document.body; i++) {
+                                let tag = current.tagName.toLowerCase();
+                                let index = 1;
+                                let sibling = current.previousElementSibling;
+                                while (sibling) {
+                                    if (sibling.tagName === current.tagName) index++;
+                                    sibling = sibling.previousElementSibling;
+                                }
+                                path = `/${tag}[${index}]${path}`;
+                                current = current.parentElement;
+                            }
+                            return `//${current.tagName.toLowerCase()}${path}`;
                         }
 
-                        const allElements = document.querySelectorAll('span, div, b, strong, p, h1, h2, h3, h4, h5, li');
-                        for (const el of allElements) {
+                        const elements = document.querySelectorAll('span, p, div, b, strong, h1, h2');
+                        for (const el of elements) {
                             const text = el.innerText.trim();
-                            if (regex.test(text) && el.children.length <= 2 && text.length < 30) {
+                            if (priceRegex.test(text) && text.length < 25 && el.children.length <= 1) {
+                                let score = 0;
+                                const content = (el.id + el.className + el.getAttribute('data-test') || '').toLowerCase();
+                                
+                                // Pontuação por palavras-chave
+                                keywords.forEach(word => { if (content.includes(word)) score += 40; });
+                                
+                                // Pontuação por símbolo de moeda (Prioridade R$)
+                                if (text.includes('R$')) score += 50;
+                                else if (text.includes('$')) score += 20;
+                                
+                                // Pontuação por posição na árvore (tags fortes)
+                                if (['H1', 'H2', 'B', 'STRONG'].includes(el.tagName)) score += 30;
+                                
+                                // Penalidade para textos muito longos ou muito curtos
+                                if (text.length > 15) score -= 10;
+                                
                                 results.push({
                                     text: text,
-                                    xpath: getXPath(el)
+                                    xpath: getRobustXPath(el),
+                                    score: score
                                 });
                             }
                         }
-                        return results.slice(0, 5);
+                        
+                        // Ordena pelos melhores scores e remove duplicados
+                        return results
+                            .sort((a, b) => b.score - a.score)
+                            .filter((v, i, a) => a.findIndex(t => t.text === v.text) === i)
+                            .slice(0, 5);
                     }
                 """)
                 return candidates
