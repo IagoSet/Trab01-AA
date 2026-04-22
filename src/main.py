@@ -46,7 +46,15 @@ async def main():
             xpath_selector = candidates[int(choice)-1]['xpath']
             console.print(f"[bold green]Selecionado:[/bold green] {candidates[int(choice)-1]['text']}")
         else:
-            xpath_selector = Prompt.ask("[bold yellow]Digite o XPath ou Seletor manualmente[/bold yellow]")
+            raw_xpath = Prompt.ask("[bold yellow]Cole o XPath ou Seletor do navegador[/bold yellow]")
+            with console.status("[bold cyan]Otimizando XPath para torná-lo robusto...[/bold cyan]"):
+                temp_monitor = AuctionMonitor(auction_url, "", 0, logger)
+                xpath_selector = await temp_monitor.simplify_xpath(raw_xpath)
+            
+            if xpath_selector != raw_xpath:
+                console.print(f"[bold green]Sucesso![/bold green] Otimizei seu XPath para: [bold cyan]{xpath_selector}[/bold cyan]")
+            else:
+                console.print("[yellow]Não foi possível simplificar, usaremos o original.[/yellow]")
     else:
         console.print("[yellow]Não consegui encontrar o preço automaticamente.[/yellow]")
         xpath_selector = Prompt.ask("[bold yellow]XPath ou Seletor do campo de preço[/bold yellow]")

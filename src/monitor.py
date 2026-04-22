@@ -66,6 +66,48 @@ class AuctionMonitor:
             finally:
                 await browser.close()
 
+    async def simplify_xpath(self, fragile_xpath):
+        """
+        Recebe um XPath longo/frágil, encontra o elemento no browser
+        e tenta gerar um XPath robusto baseado em atributos (ID, data-testid, etc).
+        """
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+            try:
+                await page.goto(self.url, wait_until="domcontentloaded")
+                element = await page.query_selector(f"xpath={fragile_xpath}")
+                
+                if not element:
+                    return fragile_xpath # Se não achar, mantém o original
+
+                # Script JS para analisar o elemento e sugerir um XPath melhor
+                robust_xpath = await page.evaluate("""
+                    (el) => {
+                        if (el.id) return `//*[@id="${el.id}"]`;
+                        
+                        const attrs = ['data-testid', 'data-qa', 'itemprop', 'name'];
+                        for (const attr of attrs) {
+                            if (el.getAttribute(attr)) {
+                                return `//${el.tagName.toLowerCase()}[@${attr}="${el.getAttribute(attr)}"]`;
+                            }
+                        }
+                        
+                        // Se não tiver atributos únicos, tenta simplificar a classe se for curta
+                        if (el.className && typeof el.className === 'string' && el.className.split(' ').length === 1) {
+                            return `//${el.tagName.toLowerCase()}[@class="${el.className}"]`;
+                        }
+                        
+                        return null; // Não conseguiu simplificar com segurança
+                    }
+                """, element)
+                
+                return robust_xpath if robust_xpath else fragile_xpath
+            except Exception:
+                return fragile_xpath
+            finally:
+                await browser.close()
+
     async def start(self, notifier_callback):
         """
         Inicia o loop de monitoramento.
