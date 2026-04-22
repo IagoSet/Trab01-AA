@@ -28,26 +28,26 @@ Sistema robusto em Python para monitoramento de preços em páginas de leilão d
 - **Limpeza de Nome (`validate_username`):** $O(S)$ onde $S$ é o tamanho da string.
 - **Parsing de Preço (`parse_price`):** $O(S)$ para limpeza via Regex e conversão.
 
-## 🎓 Guia de Aprendizado e "Cola" para a Equipe (Preparação para o Professor)
+## 🏗️ Arquitetura e Decisões de Projeto
 
-Este guia resume o que cada parte do projeto faz e os conceitos técnicos que vocês podem precisar explicar durante a apresentação.
+O sistema foi desenvolvido seguindo princípios de modularidade e separação de responsabilidades. Abaixo, detalhamos a função de cada módulo e as justificativas técnicas adotadas.
 
-### 📂 Estrutura de Arquivos e Responsabilidades
+### 📂 Estrutura de Módulos
 
-| Arquivo | O que ele faz? (Explicação Simples) | O que o professor pode perguntar? |
+| Módulo | Responsabilidade Técnica | Detalhes de Implementação / Justificativa |
 | :--- | :--- | :--- |
-| **`main.py`** | O "cérebro" do programa. Ele pede os dados para o usuário, valida tudo e liga o motor de monitoramento. | "Como o programa começa?" R: Pela função `main()` que orquestra a entrada de dados e inicia o loop assíncrono. |
-| **`monitor.py`** | O "vigia". Ele abre o navegador (em segundo plano), vai até a página do leilão e fica olhando o preço de tempos em tempos. | "Como você detecta a mudança?" R: Guardamos o valor atual e, a cada intervalo, comparamos com o novo valor lido via XPath. |
-| **`notifier.py`** | O "mensageiro". Quando o preço muda, este arquivo abre uma **segunda página** (ex: um formulário) e envia os dados da mudança. | "Por que usar Playwright aqui também?" R: Para simular uma interação real em outra página web, como preencher um log ou enviar um alerta. |
-| **`validators.py`** | O "filtro". Garante que o usuário não digite lixo (ex: nome vazio, URL maluca ou intervalo negativo). | "Como você trata o preço que vem como texto (R$ 1.200,00)?" R: Usamos a função `parse_price` com Regex para limpar símbolos e converter para número (`float`). |
-| **`logger.py`** | O "diário". Salva tudo o que acontece no arquivo `app.log` e mostra mensagens coloridas no terminal. | "Para que serve o Log?" R: Para rastreabilidade e depuração sem precisar parar o programa, mantendo um histórico das alterações. |
+| **`main.py`** | Ponto de entrada e Orquestração | Gerencia o ciclo de vida da aplicação, coordenando a captura de inputs validados e a inicialização do loop de eventos assíncronos (`asyncio`). |
+| **`monitor.py`** | Motor de Monitoramento Web | Utiliza a engine do Playwright para interação com o DOM. A lógica de detecção baseia-se em *polling* periódico e comparação de estados (valor anterior vs. atual). |
+| **`notifier.py`** | Integração e Notificação Externa | Implementa a automação de uma segunda página web para persistência ou alerta de dados, garantindo que a notificação ocorra em um ambiente isolado. |
+| **`validators.py`** | Camada de Integridade e Sanitização | Centraliza as regras de negócio para validação de dados. O processamento de preços utiliza Expressões Regulares (Regex) para garantir a conversão correta de diferentes formatos monetários. |
+| **`logger.py`** | Observabilidade e Rastreabilidade | Implementa logs persistentes em arquivo (`app.log`) e feedback em tempo real via terminal (Rich), essencial para depuração e auditoria do sistema em execução. |
 
-### 🛠️ Tecnologias Chave (Conceitos Técnicos)
+### 🛠️ Tecnologias e Padrões Adotados
 
-1.  **Asyncio (`async`/`await`):** O projeto é **assíncrono**. Isso significa que o programa não fica "travado" esperando o navegador carregar; ele pode gerenciar outras tarefas enquanto espera a resposta da rede.
-2.  **Playwright:** É a ferramenta de automação que controla o navegador (Chromium). Ela é mais moderna e rápida que o Selenium.
-3.  **XPath/Seletores:** São os "endereços" dos elementos na página HTML. Usamos isso para dizer ao programa exatamente onde está o preço que queremos vigiar.
-4.  **Tratamento de Exceções (`try/except`):** Em todos os arquivos, usamos blocos para evitar que o programa feche sozinho caso a internet caia ou o site mude (isso garante a "robustez" cobrada).
+1.  **Programação Assíncrona (`asyncio`):** Escolhida para permitir que o sistema realize operações de I/O (como navegação web e rede) sem bloquear a execução principal, otimizando o consumo de recursos.
+2.  **Engine Playwright:** Adotada pela sua superioridade em lidar com SPAs (Single Page Applications) e sites dinâmicos modernos, oferecendo seletores mais robustos que o Selenium tradicional.
+3.  **Seletores Semânticos (XPath):** Priorizamos o uso de XPaths baseados em atributos (ex: `@id`, `@data-testid`) para aumentar a resiliência do robô frente a mudanças de layout nas páginas monitoradas.
+4.  **Tratamento de Exceções e Robustez:** Implementamos blocos de controle em todas as camadas críticas para garantir que falhas de conexão ou mudanças abruptas no DOM não causem o encerramento inesperado do serviço.
 
 ### 📈 Análise de Complexidade (Big O)
 
