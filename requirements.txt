@@ -1,0 +1,7 @@
+playwright
+pytest
+pytest-asyncio
+rich
+sphinx
+sphinx-rtd-theme
+validators
