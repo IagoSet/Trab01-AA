@@ -21,13 +21,18 @@ class AuctionMonitor:
         Retorna uma lista de dicionários com 'text' e 'xpath'.
         """
         async with async_playwright() as p:
+            # Configurações de camuflagem para parecer um navegador real
             browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
+            context = await browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                viewport={'width': 1920, 'height': 1080},
+                extra_http_headers={"Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"}
+            )
+            page = await context.new_page()
             try:
-                await page.goto(self.url, wait_until="networkidle")
+                await page.goto(self.url, wait_until="networkidle", timeout=60000)
                 
-                # Script JS para encontrar elementos que contenham padrões de preço (R$, $, números com vírgula)
-                # Foca em elementos pequenos (folhas da árvore DOM) para precisão
+                # Script JS para encontrar elementos que contenham padrões de preço
                 candidates = await page.evaluate("""
                     () => {
                         const results = [];
@@ -48,7 +53,6 @@ class AuctionMonitor:
                         const allElements = document.querySelectorAll('span, div, b, strong, p, h1, h2, h3, h4, h5, li');
                         for (const el of allElements) {
                             const text = el.innerText.trim();
-                            // Verifica se o texto combina com preço e se o elemento não tem muitos filhos (é um 'nó folha')
                             if (regex.test(text) && el.children.length <= 2 && text.length < 30) {
                                 results.push({
                                     text: text,
@@ -56,7 +60,7 @@ class AuctionMonitor:
                                 });
                             }
                         }
-                        return results.slice(0, 5); // Retorna os 5 primeiros candidatos
+                        return results.slice(0, 5);
                     }
                 """)
                 return candidates
@@ -73,32 +77,33 @@ class AuctionMonitor:
         """
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
+            context = await browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
+            page = await context.new_page()
             try:
-                await page.goto(self.url, wait_until="domcontentloaded")
+                await page.goto(self.url, wait_until="domcontentloaded", timeout=60000)
                 element = await page.query_selector(f"xpath={fragile_xpath}")
                 
                 if not element:
-                    return fragile_xpath # Se não achar, mantém o original
+                    return fragile_xpath
 
-                # Script JS para analisar o elemento e sugerir um XPath melhor
                 robust_xpath = await page.evaluate("""
                     (el) => {
                         if (el.id) return `//*[@id="${el.id}"]`;
                         
-                        const attrs = ['data-testid', 'data-qa', 'itemprop', 'name'];
+                        const attrs = ['data-test', 'data-testid', 'data-qa', 'itemprop', 'name'];
                         for (const attr of attrs) {
                             if (el.getAttribute(attr)) {
                                 return `//${el.tagName.toLowerCase()}[@${attr}="${el.getAttribute(attr)}"]`;
                             }
                         }
                         
-                        // Se não tiver atributos únicos, tenta simplificar a classe se for curta
                         if (el.className && typeof el.className === 'string' && el.className.split(' ').length === 1) {
                             return `//${el.tagName.toLowerCase()}[@class="${el.className}"]`;
                         }
                         
-                        return null; // Não conseguiu simplificar com segurança
+                        return null;
                     }
                 """, element)
                 
@@ -111,24 +116,22 @@ class AuctionMonitor:
     async def start(self, notifier_callback):
         """
         Inicia o loop de monitoramento.
-        
-        Complexidade:
-        Tempo: O(N) para N verificações periódicas.
-        Espaço: O(1) mantém apenas o valor atual e o anterior.
-        
-        :param notifier_callback: Função assíncrona para chamar ao detectar mudança.
         """
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
+            # Aplica camuflagem também no loop principal de monitoramento
+            context = await browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                viewport={'width': 1920, 'height': 1080}
+            )
+            page = await context.new_page()
             
             try:
                 self.logger.info(f"Navegando para: {self.url}")
-                await page.goto(self.url, wait_until="domcontentloaded")
+                await page.goto(self.url, wait_until="domcontentloaded", timeout=60000)
                 
                 # Inicializa o valor atual
-                # O motor de busca do browser por XPath tem complexidade O(E) (E = elementos no DOM)
-                element = await page.wait_for_selector(self.selector, timeout=30000)
+                element = await page.wait_for_selector(self.selector, timeout=60000)
                 if not element:
                     self.logger.error("Elemento não encontrado no início do monitoramento.")
                     return
