@@ -36,17 +36,18 @@ O sistema foi desenvolvido seguindo princípios de modularidade e separação de
 
 | Módulo | Responsabilidade Técnica | Detalhes de Implementação / Justificativa |
 | :--- | :--- | :--- |
-| **`main.py`** | Ponto de entrada e Orquestração | Gerencia o ciclo de vida da aplicação, coordenando a captura de inputs validados e a inicialização do loop de eventos assíncronos (`asyncio`). |
-| **`monitor.py`** | Motor de Monitoramento Web | Utiliza a engine do Playwright para interação com o DOM. A lógica de detecção baseia-se em *polling* periódico e comparação de estados (valor anterior vs. atual). |
+| **`main.py`** | Ponto de entrada e Orquestração | Gerencia o ciclo de vida da aplicação, coordenando a captura de inputs validados, o fluxo de descoberta automática e o loop de eventos assíncronos. |
+| **`monitor.py`** | Motor de Monitoramento Web | Implementa o motor de busca via Playwright e o algoritmo de **Descoberta Heurística**, que varre o DOM em busca de padrões monetários para sugerir XPaths ao usuário. |
 | **`notifier.py`** | Integração e Notificação Externa | Implementa a automação de uma segunda página web para persistência ou alerta de dados, garantindo que a notificação ocorra em um ambiente isolado. |
-| **`validators.py`** | Camada de Integridade e Sanitização | Centraliza as regras de negócio para validação de dados. O processamento de preços utiliza Expressões Regulares (Regex) para garantir a conversão correta de diferentes formatos monetários. |
-| **`logger.py`** | Observabilidade e Rastreabilidade | Implementa logs persistentes em arquivo (`app.log`) e feedback em tempo real via terminal (Rich), essencial para depuração e auditoria do sistema em execução. |
+| **`validators.py`** | Camada de Integridade e Sanitização | Centraliza as regras de negócio. Inclui lógica avançada de extração de preços para tratar anomalias de sites que duplicam valores no HTML (ex: Magalu). |
+| **`logger.py`** | Observabilidade e Rastreabilidade | Implementa logs persistentes e feedback visual de "Heartbeat" (batimento cardíaco), permitindo monitorar a saúde do sistema sem poluição de dados. |
 
 ### 🛠️ Tecnologias e Padrões Adotados
 
-1.  **Programação Assíncrona (`asyncio`):** Escolhida para permitir que o sistema realize operações de I/O (como navegação web e rede) sem bloquear a execução principal, otimizando o consumo de recursos.
-2.  **Engine Playwright:** Adotada pela sua superioridade em lidar com SPAs (Single Page Applications) e sites dinâmicos modernos, oferecendo seletores mais robustos que o Selenium tradicional.
-3.  **Seletores Semânticos (XPath):** Priorizamos o uso de XPaths baseados em atributos (ex: `@id`, `@data-testid`) para aumentar a resiliência do robô frente a mudanças de layout nas páginas monitoradas.
+1.  **Programação Assíncrona (`asyncio`):** Escolhida para permitir que o sistema realize operações de I/O (como navegação web e rede) sem bloquear a execução principal.
+2.  **Engine Playwright:** Adotada pela sua superioridade em lidar com sites dinâmicos modernos, permitindo a execução de scripts JavaScript para análise em tempo real.
+3.  **Descoberta Automática (Heurística):** Implementamos um algoritmo de busca que identifica padrões de texto (Regex) no DOM, gerando XPaths dinâmicos de forma automatizada para facilitar a experiência do usuário.
+4.  **Seletores Semânticos (XPath):** Priorizamos o uso de XPaths baseados em atributos (ex: `@id`, `@data-testid`) para aumentar a resiliência do robô frente a mudanças de layout.
 4.  **Tratamento de Exceções e Robustez:** Implementamos blocos de controle em todas as camadas críticas para garantir que falhas de conexão ou mudanças abruptas no DOM não causem o encerramento inesperado do serviço.
 
 ### 📈 Análise de Complexidade (Big O)
