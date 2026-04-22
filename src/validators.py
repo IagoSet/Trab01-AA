@@ -38,17 +38,20 @@ def validate_timeout(timeout_str: str) -> bool:
 def parse_price(price_str: str) -> float:
     """
     Converte uma string de preço (ex: 'R$ 1.234,50') em um float.
-    
-    :param price_str: String do preço extraída da web.
-    :return: Valor em float.
-    :raises ValueError: Se a string não contiver um valor numérico válido.
+    Trata casos de duplicação (ex: '1439.101439.10') pegando apenas o primeiro valor.
     """
-    # Remove caracteres não numéricos, exceto vírgula e ponto
-    # Substitui vírgula por ponto se necessário para o padrão float
-    clean_str = re.sub(r'[^\d,.]', '', price_str)
+    # Encontra todos os padrões que se parecem com números (incluindo pontos e vírgulas)
+    # A regex busca sequências numéricas que podem ter separadores
+    matches = re.findall(r'\d+[.,\d]*', price_str)
     
-    if not clean_str:
+    if not matches:
         raise ValueError(f"Não foi possível encontrar um valor numérico em: {price_str}")
+
+    # Pegamos apenas a primeira ocorrência encontrada para evitar duplicações do site
+    clean_str = matches[0]
+    
+    # Se o número terminar com ponto ou vírgula (ex: '1.200.'), removemos
+    clean_str = clean_str.rstrip('.,')
 
     # Lógica para tratar formatos brasileiros (1.234,50) e americanos (1,234.50)
     if ',' in clean_str and '.' in clean_str:
@@ -62,4 +65,9 @@ def parse_price(price_str: str) -> float:
         # Apenas vírgula: assumimos que é o separador decimal (ex: 1234,50)
         clean_str = clean_str.replace(',', '.')
     
-    return float(clean_str)
+    try:
+        return float(clean_str)
+    except ValueError:
+        # Fallback caso a limpeza falhe: remove tudo que não for dígito ou ponto
+        final_attempt = re.sub(r'[^\d.]', '', clean_str)
+        return float(final_attempt)
