@@ -29,7 +29,27 @@ async def main():
             break
         console.print("[bold red]URL inválida. Por favor, insira uma URL completa (ex: http://...)[/bold red]")
 
-    xpath_selector = Prompt.ask("[bold yellow]XPath ou Seletor do campo de preço[/bold yellow]")
+    # Descoberta Automática de Preço
+    xpath_selector = ""
+    with console.status("[bold cyan]Tentando encontrar o preço automaticamente...[/bold cyan]"):
+        temp_monitor = AuctionMonitor(auction_url, "", 0, logger)
+        candidates = await temp_monitor.discover_price_elements()
+    
+    if candidates:
+        console.print("\n[bold green]Encontrei os seguintes campos que parecem ser o preço:[/bold green]")
+        for idx, c in enumerate(candidates, 1):
+            console.print(f"{idx}. [bold yellow]{c['text']}[/bold yellow] (XPath: {c['xpath']})")
+        
+        choice = Prompt.ask("\n[bold cyan]Escolha o número do preço correto ou digite 'm' para manual[/bold cyan]", default="1")
+        
+        if choice.isdigit() and 1 <= int(choice) <= len(candidates):
+            xpath_selector = candidates[int(choice)-1]['xpath']
+            console.print(f"[bold green]Selecionado:[/bold green] {candidates[int(choice)-1]['text']}")
+        else:
+            xpath_selector = Prompt.ask("[bold yellow]Digite o XPath ou Seletor manualmente[/bold yellow]")
+    else:
+        console.print("[yellow]Não consegui encontrar o preço automaticamente.[/yellow]")
+        xpath_selector = Prompt.ask("[bold yellow]XPath ou Seletor do campo de preço[/bold yellow]")
     
     while True:
         timeout_str = Prompt.ask("[bold yellow]Intervalo de monitoramento (segundos)[/bold yellow]", default="5")

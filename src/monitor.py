@@ -15,6 +15,57 @@ class AuctionMonitor:
         self.logger = logger
         self.current_value = None
 
+    async def discover_price_elements(self):
+        """
+        Tenta encontrar automaticamente elementos que pareçam ser preços na página.
+        Retorna uma lista de dicionários com 'text' e 'xpath'.
+        """
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+            try:
+                await page.goto(self.url, wait_until="networkidle")
+                
+                # Script JS para encontrar elementos que contenham padrões de preço (R$, $, números com vírgula)
+                # Foca em elementos pequenos (folhas da árvore DOM) para precisão
+                candidates = await page.evaluate("""
+                    () => {
+                        const results = [];
+                        const regex = /(R\\$\\s?|\\$|€)\\s?\\d+[.,]?\\d*/i;
+                        
+                        function getXPath(element) {
+                            if (element.id !== '') return `//*[@id="${element.id}"]`;
+                            if (element === document.body) return '/html/body';
+                            let ix = 0;
+                            const siblings = element.parentNode.childNodes;
+                            for (let i = 0; i < siblings.length; i++) {
+                                const sibling = siblings[i];
+                                if (sibling === element) return getXPath(element.parentNode) + '/' + element.tagName.toLowerCase() + '[' + (ix + 1) + ']';
+                                if (sibling.nodeType === 1 && sibling.tagName === element.tagName) ix++;
+                            }
+                        }
+
+                        const allElements = document.querySelectorAll('span, div, b, strong, p, h1, h2, h3, h4, h5, li');
+                        for (const el of allElements) {
+                            const text = el.innerText.trim();
+                            // Verifica se o texto combina com preço e se o elemento não tem muitos filhos (é um 'nó folha')
+                            if (regex.test(text) && el.children.length <= 2 && text.length < 30) {
+                                results.push({
+                                    text: text,
+                                    xpath: getXPath(el)
+                                });
+                            }
+                        }
+                        return results.slice(0, 5); // Retorna os 5 primeiros candidatos
+                    }
+                """)
+                return candidates
+            except Exception as e:
+                self.logger.error(f"Erro na descoberta automática: {e}")
+                return []
+            finally:
+                await browser.close()
+
     async def start(self, notifier_callback):
         """
         Inicia o loop de monitoramento.

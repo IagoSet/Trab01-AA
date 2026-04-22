@@ -1,0 +1,14 @@
+2026-04-22 14:16:34,833 - AuctionAssistant - INFO - Sessão iniciada pelo usuário: iag
+2026-04-22 14:16:34,836 - AuctionAssistant - INFO - AÇÃO: Usuário iag logado com sucesso.
+2026-04-22 14:19:02,203 - AuctionAssistant - INFO - Navegando para: https://www.magazineluiza.com.br/notebook-multi-ultra-ub251-4gb-ram-128gb-emmc-14-hd-windows-11-ub251-mouse-sem-fio/p/238851600/in/nmls/?seller_id=magazineluiza&srsltid=AfmBOoqjFT2p_dAOK_lh8IWvWHwYz1vY7xRdKFxLjN8QV1M4itLswDSYcAs
+2026-04-22 14:19:37,203 - AuctionAssistant - CRITICAL - Erro fatal no monitoramento: Page.wait_for_selector: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("//*[@id=\"price-final-label-12837\"]") to be visible
+
+2026-04-22 14:20:08,556 - AuctionAssistant - INFO - Sessão iniciada pelo usuário: iag
+2026-04-22 14:20:08,561 - AuctionAssistant - INFO - AÇÃO: Usuário iag logado com sucesso.
+2026-04-22 14:21:04,097 - AuctionAssistant - INFO - Navegando para: https://www.magazineluiza.com.br/notebook-multi-ultra-ub251-4gb-ram-128gb-emmc-14-hd-windows-11-ub251-mouse-sem-fio/p/238851600/in/nmls/?seller_id=magazineluiza&srsltid=AfmBOoqjFT2p_dAOK_lh8IWvWHwYz1vY7xRdKFxLjN8QV1M4itLswDSYcAs
+2026-04-22 14:21:06,079 - AuctionAssistant - CRITICAL - Erro fatal no monitoramento: Page.wait_for_selector: Unexpected token "/" while parsing css selector "/html/body/div[4]/div/aside/div[1]/div[1]/div/div/div[2]/p/span[2]/span[2]". Did you mean to CSS.escape it?
+Call log:
+  - waiting for /html/body/div[4]/div/aside/div[1]/div[1]/div/div/div[2]/p/span[2]/span[2] to be visible
+
