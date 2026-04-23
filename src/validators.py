@@ -35,6 +35,15 @@ def validate_timeout(timeout_str: str) -> bool:
     except ValueError:
         return False
 
+def validate_email(email: str) -> bool:
+    """
+    Valida se o e-mail fornecido é um endereço válido.
+    
+    :param email: E-mail a ser validado.
+    :return: True se válido, False caso contrário.
+    """
+    return bool(validators.email(email))
+
 def parse_price(price_str: str) -> float:
     """
     Converte uma string de preço (ex: 'R$ 1.234,50') em um float.

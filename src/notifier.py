@@ -1,43 +1,56 @@
-from playwright.async_api import async_playwright
+import smtplib
+import os
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 class Notifier:
     """
-    Responsável por interagir com a segunda página web para enviar a notificação.
+    Responsável por enviar notificações de mudança de preço por e-mail.
     """
     
-    def __init__(self, target_url="https://formspree.io/f/mnnqyzrj"): # URL de exemplo/estável
-        self.target_url = target_url
+    def __init__(self, recipient_email=None):
+        # Credenciais do "Bot" (Você pode preencher aqui ou usar variáveis de ambiente)
+        self.smtp_server = "smtp.gmail.com"
+        self.smtp_port = 587
+        self.bot_email = os.getenv("BOT_EMAIL", "jejzksnlabd@gmail.com")
+        self.bot_password = os.getenv("BOT_PASSWORD", "udzlzmrtglttnncj")
+        self.recipient_email = recipient_email
 
     async def send_notification(self, old_value, new_value):
         """
-        Abre a página de destino, preenche os dados e envia o formulário.
+        Envia um e-mail informando a alteração de preço.
         """
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context()
-            page = await context.new_page()
-            
-            try:
-                await page.goto(self.target_url)
-                
-                # Preenche a mensagem com os valores antigo e novo
-                # Nota: Seletores variam conforme o formulário, usaremos seletores genéricos robustos
-                message = f"ALERTA DE LEILÃO: O valor mudou de {old_value} para {new_value}."
-                
-                # Exemplo: Tentando preencher campos comuns de formulário de contato
-                # Se não encontrar, apenas loga a tentativa (neste mock)
-                if await page.query_selector("textarea"):
-                    await page.fill("textarea", message)
-                    
-                if await page.query_selector("input[type='email']"):
-                    await page.fill("input[type='email']", "alerta@leilao.com")
+        if not self.recipient_email:
+            print("Erro: Nenhum e-mail de destino configurado.")
+            return False
 
-                if await page.query_selector("button[type='submit']"):
-                    await page.click("button[type='submit']")
-                
-                return True
-            except Exception as e:
-                print(f"Erro ao enviar notificação: {e}")
-                return False
-            finally:
-                await browser.close()
+        try:
+            # Configuração da mensagem
+            msg = MIMEMultipart()
+            msg['From'] = self.bot_email
+            msg['To'] = self.recipient_email
+            msg['Subject'] = f"ALERTA: O preço mudou! (R$ {old_value} -> R$ {new_value})"
+            
+            body = f"""
+            Olá!
+            
+            Houve uma mudança no preço que você está monitorando:
+            
+            - Valor Anterior: R$ {old_value}
+            - Novo Valor: R$ {new_value}
+            
+            O monitor continuará rodando para as próximas alterações.
+            """
+            msg.attach(MIMEText(body, 'plain'))
+
+            # Conexão com o servidor e envio
+            server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+            server.starttls()  # Protocolo de segurança
+            server.login(self.bot_email, self.bot_password)
+            server.send_message(msg)
+            server.quit()
+            
+            return True
+        except Exception as e:
+            print(f"Erro ao enviar e-mail: {e}")
+            return False
