@@ -1,0 +1,204 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="pt-BR" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.validators &mdash; Documentação Assistente de Lances 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=c0c8e3fa"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/translations.js?v=71a39b36"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Buscar" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Assistente de Lances
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Pesquisar documentos" aria-label="Pesquisar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navegação">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Menu de navegação móvel" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Assistente de Lances</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Navegação da página">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código do módulo</a></li>
+      <li class="breadcrumb-item active">src.validators</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código-fonte para src.validators</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="kn">import</span> <span class="n">urlparse</span>
+<span class="kn">import</span> <span class="nn">validators</span>
+
+<div class="viewcode-block" id="validate_username">
+<a class="viewcode-back" href="../../index.html#src.validators.validate_username">[documentos]</a>
+<span class="k">def</span> <span class="nf">validate_username</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Valida se o nome de usuário tem pelo menos 3 caracteres alfabéticos.</span>
+<span class="sd">    </span>
+<span class="sd">    :param name: Nome a ser validado.</span>
+<span class="sd">    :return: True se válido, False caso contrário.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Remove espaços e verifica se contém apenas letras e tem tamanho &gt;= 3</span>
+    <span class="n">clean_name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">clean_name</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">clean_name</span><span class="o">.</span><span class="n">isalpha</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="validate_url">
+<a class="viewcode-back" href="../../index.html#src.validators.validate_url">[documentos]</a>
+<span class="k">def</span> <span class="nf">validate_url</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Valida se a string fornecida é uma URL válida.</span>
+<span class="sd">    </span>
+<span class="sd">    :param url: URL a ser validada.</span>
+<span class="sd">    :return: True se válida, False caso contrário.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">validators</span><span class="o">.</span><span class="n">url</span><span class="p">(</span><span class="n">url</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="validate_timeout">
+<a class="viewcode-back" href="../../index.html#src.validators.validate_timeout">[documentos]</a>
+<span class="k">def</span> <span class="nf">validate_timeout</span><span class="p">(</span><span class="n">timeout_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Valida se o timeout fornecido é um número inteiro positivo.</span>
+<span class="sd">    </span>
+<span class="sd">    :param timeout_str: String representando o timeout.</span>
+<span class="sd">    :return: True se válido, False caso contrário.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">timeout_str</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="validate_email">
+<a class="viewcode-back" href="../../index.html#src.validators.validate_email">[documentos]</a>
+<span class="k">def</span> <span class="nf">validate_email</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Valida se o e-mail fornecido é um endereço válido.</span>
+<span class="sd">    </span>
+<span class="sd">    :param email: E-mail a ser validado.</span>
+<span class="sd">    :return: True se válido, False caso contrário.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">validators</span><span class="o">.</span><span class="n">email</span><span class="p">(</span><span class="n">email</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="parse_price">
+<a class="viewcode-back" href="../../index.html#src.validators.parse_price">[documentos]</a>
+<span class="k">def</span> <span class="nf">parse_price</span><span class="p">(</span><span class="n">price_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converte uma string de preço (ex: &#39;R$ 1.234,50&#39;) em um float.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        price_str (str): Texto capturado da página.</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        float: Valor numérico limpo.</span>
+<span class="sd">        </span>
+<span class="sd">    Complexity:</span>
+<span class="sd">        O(n) - Percorre a string uma vez com regex.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Encontra todos os padrões que se parecem com números (incluindo pontos e vírgulas)</span>
+    <span class="c1"># A regex busca sequências numéricas que podem ter separadores</span>
+    <span class="n">matches</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\d+[.,\d]*&#39;</span><span class="p">,</span> <span class="n">price_str</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">matches</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Não foi possível encontrar um valor numérico em: </span><span class="si">{</span><span class="n">price_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Pegamos apenas a primeira ocorrência encontrada para evitar duplicações do site</span>
+    <span class="n">clean_str</span> <span class="o">=</span> <span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    
+    <span class="c1"># Se o número terminar com ponto ou vírgula (ex: &#39;1.200.&#39;), removemos</span>
+    <span class="n">clean_str</span> <span class="o">=</span> <span class="n">clean_str</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;.,&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Lógica para tratar formatos brasileiros (1.234,50) e americanos (1,234.50)</span>
+    <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">clean_str</span> <span class="ow">and</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">clean_str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">clean_str</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">clean_str</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+            <span class="c1"># Formato brasileiro: 1.234,50 -&gt; 1234.50</span>
+            <span class="n">clean_str</span> <span class="o">=</span> <span class="n">clean_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Formato americano: 1,234.50 -&gt; 1234.50</span>
+            <span class="n">clean_str</span> <span class="o">=</span> <span class="n">clean_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">clean_str</span><span class="p">:</span>
+        <span class="c1"># Apenas vírgula: assumimos que é o separador decimal (ex: 1234,50)</span>
+        <span class="n">clean_str</span> <span class="o">=</span> <span class="n">clean_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">clean_str</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="c1"># Fallback caso a limpeza falhe: remove tudo que não for dígito ou ponto</span>
+        <span class="n">final_attempt</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[^\d.]&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">clean_str</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">final_attempt</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Direitos autorais 2026, Grupo de Algen.</p>
+  </div>
+
+  Compilado com <a href="https://www.sphinx-doc.org/">Sphinx</a> usando um
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    fornecido por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

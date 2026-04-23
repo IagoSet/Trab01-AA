@@ -1,0 +1,345 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="pt-BR" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.monitor &mdash; Documentação Assistente de Lances 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=c0c8e3fa"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/translations.js?v=71a39b36"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Buscar" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Assistente de Lances
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Pesquisar documentos" aria-label="Pesquisar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navegação">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Menu de navegação móvel" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Assistente de Lances</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Navegação da página">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código do módulo</a></li>
+      <li class="breadcrumb-item active">src.monitor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código-fonte para src.monitor</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">playwright.async_api</span> <span class="kn">import</span> <span class="n">async_playwright</span>
+<span class="kn">from</span> <span class="nn">playwright_stealth</span> <span class="kn">import</span> <span class="n">Stealth</span>
+<span class="kn">from</span> <span class="nn">src.validators</span> <span class="kn">import</span> <span class="n">parse_price</span>
+<span class="kn">from</span> <span class="nn">src.logger</span> <span class="kn">import</span> <span class="n">log_price_change</span>
+
+<div class="viewcode-block" id="AuctionMonitor">
+<a class="viewcode-back" href="../../index.html#src.monitor.AuctionMonitor">[documentos]</a>
+<span class="k">class</span> <span class="nc">AuctionMonitor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Monitora uma URL em busca de alterações de preço, lidando com iFrames,</span>
+<span class="sd">    Shadow DOM e proteções anti-bot.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">selector</span><span class="p">,</span> <span class="n">interval</span><span class="p">,</span> <span class="n">logger</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selector</span> <span class="o">=</span> <span class="n">selector</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="o">=</span> <span class="n">interval</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_value</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">_apply_stealth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">page</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Aplica camuflagem para evitar detecção de robôs.&quot;&quot;&quot;</span>
+        <span class="n">stealth_obj</span> <span class="o">=</span> <span class="n">Stealth</span><span class="p">()</span>
+        <span class="k">await</span> <span class="n">stealth_obj</span><span class="o">.</span><span class="n">apply_stealth_async</span><span class="p">(</span><span class="n">page</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">_auto_scroll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">page</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Rola a página para carregar elementos de lazy loading.&quot;&quot;&quot;</span>
+        <span class="k">await</span> <span class="n">page</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            async () =&gt; {</span>
+<span class="s2">                await new Promise((resolve) =&gt; {</span>
+<span class="s2">                    let totalHeight = 0;</span>
+<span class="s2">                    let distance = 100;</span>
+<span class="s2">                    let timer = setInterval(() =&gt; {</span>
+<span class="s2">                        let scrollHeight = document.body.scrollHeight;</span>
+<span class="s2">                        window.scrollBy(0, distance);</span>
+<span class="s2">                        totalHeight += distance;</span>
+<span class="s2">                        if(totalHeight &gt;= scrollHeight){</span>
+<span class="s2">                            clearInterval(timer);</span>
+<span class="s2">                            resolve();</span>
+<span class="s2">                        }</span>
+<span class="s2">                    }, 100);</span>
+<span class="s2">                });</span>
+<span class="s2">            }</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AuctionMonitor.discover_price_elements">
+<a class="viewcode-back" href="../../index.html#src.monitor.AuctionMonitor.discover_price_elements">[documentos]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">discover_price_elements</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tenta encontrar preços na página principal e dentro de todos os iFrames.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="n">async_playwright</span><span class="p">()</span> <span class="k">as</span> <span class="n">p</span><span class="p">:</span>
+            <span class="n">browser</span> <span class="o">=</span> <span class="k">await</span> <span class="n">p</span><span class="o">.</span><span class="n">chromium</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">headless</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">context</span> <span class="o">=</span> <span class="k">await</span> <span class="n">browser</span><span class="o">.</span><span class="n">new_context</span><span class="p">(</span>
+                <span class="n">user_agent</span><span class="o">=</span><span class="s2">&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36&quot;</span>
+            <span class="p">)</span>
+            <span class="n">page</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">new_page</span><span class="p">()</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_stealth</span><span class="p">(</span><span class="n">page</span><span class="p">)</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">page</span><span class="o">.</span><span class="n">goto</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">wait_until</span><span class="o">=</span><span class="s2">&quot;load&quot;</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60000</span><span class="p">)</span>
+                <span class="k">await</span> <span class="n">page</span><span class="o">.</span><span class="n">wait_for_timeout</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_auto_scroll</span><span class="p">(</span><span class="n">page</span><span class="p">)</span>
+                
+                <span class="n">search_script</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                    () =&gt; {</span>
+<span class="s2">                        const results = [];</span>
+<span class="s2">                        const priceRegex = /</span><span class="se">\\</span><span class="s2">d{1,3}([.,]</span><span class="se">\\</span><span class="s2">d</span><span class="si">{3}</span><span class="s2">)*([.,]</span><span class="se">\\</span><span class="s2">d</span><span class="si">{2}</span><span class="s2">)?/;</span>
+<span class="s2">                        const blacklist = [&#39;alerta&#39;, &#39;notificação&#39;, &#39;aviso&#39;, &#39;menu&#39;, &#39;search&#39;, &#39;busca&#39;, &#39;cookie&#39;, &#39;login&#39;];</span>
+<span class="s2">                        const keywords = [&#39;price&#39;, &#39;valor&#39;, &#39;offer&#39;, &#39;sale&#39;, &#39;current&#39;, &#39;main&#39;, &#39;index&#39;, &#39;cotação&#39;, &#39;points&#39;, &#39;pontos&#39;];</span>
+<span class="s2">                        </span>
+<span class="s2">                        function getRobustXPath(element) {</span>
+<span class="s2">                            if (element.id &amp;&amp; !element.id.includes(&#39;ember&#39;)) return `//*[@id=&quot;$</span><span class="si">{element.id}</span><span class="s2">&quot;]`;</span>
+<span class="s2">                            </span>
+<span class="s2">                            const attrs = [&#39;data-test&#39;, &#39;data-testid&#39;, &#39;data-qa&#39;, &#39;itemprop&#39;, &#39;data-symbol&#39;];</span>
+<span class="s2">                            for (const attr of attrs) {</span>
+<span class="s2">                                if (element.getAttribute(attr)) {</span>
+<span class="s2">                                    return `//${element.tagName.toLowerCase()}[@$</span><span class="si">{attr}</span><span class="s2">=&quot;${element.getAttribute(attr)}&quot;]`;</span>
+<span class="s2">                                }</span>
+<span class="s2">                            }</span>
+<span class="s2">                            </span>
+<span class="s2">                            let path = &#39;&#39;;</span>
+<span class="s2">                            let current = element;</span>
+<span class="s2">                            for (let i = 0; i &lt; 3 &amp;&amp; current &amp;&amp; current !== document.body; i++) {</span>
+<span class="s2">                                let tag = current.tagName.toLowerCase();</span>
+<span class="s2">                                let index = 1;</span>
+<span class="s2">                                let sibling = current.previousElementSibling;</span>
+<span class="s2">                                while (sibling) {</span>
+<span class="s2">                                    if (sibling.tagName === current.tagName) index++;</span>
+<span class="s2">                                    sibling = sibling.previousElementSibling;</span>
+<span class="s2">                                }</span>
+<span class="s2">                                path = `/$</span><span class="si">{tag}</span><span class="s2">[$</span><span class="si">{index}</span><span class="s2">]$</span><span class="si">{path}</span><span class="s2">`;</span>
+<span class="s2">                                current = current.parentElement;</span>
+<span class="s2">                            }</span>
+<span class="s2">                            return `//${current ? current.tagName.toLowerCase() : &#39;body&#39;}$</span><span class="si">{path}</span><span class="s2">`;</span>
+<span class="s2">                        }</span>
+
+<span class="s2">                        const elements = document.querySelectorAll(&#39;span, p, div, b, strong, h1, h2, font&#39;);</span>
+<span class="s2">                        for (const el of elements) {</span>
+<span class="s2">                            const text = el.innerText.trim();</span>
+<span class="s2">                            const isNoise = blacklist.some(word =&gt; text.toLowerCase().includes(word));</span>
+<span class="s2">                            if (isNoise) continue;</span>
+
+<span class="s2">                            if (priceRegex.test(text) &amp;&amp; text.length &lt; 20 &amp;&amp; el.children.length &lt;= 1) {</span>
+<span class="s2">                                let score = 0;</span>
+<span class="s2">                                const content = (el.id + el.className + (el.getAttribute(&#39;data-test&#39;) || &#39;&#39;)).toLowerCase();</span>
+<span class="s2">                                </span>
+<span class="s2">                                keywords.forEach(word =&gt; { if (content.includes(word)) score += 40; });</span>
+<span class="s2">                                if (text.includes(&#39;R$&#39;) || text.includes(&#39;pts&#39;)) score += 50;</span>
+<span class="s2">                                if ([&#39;H1&#39;, &#39;H2&#39;, &#39;B&#39;, &#39;STRONG&#39;].includes(el.tagName)) score += 30;</span>
+<span class="s2">                                if (parseFloat(text.replace(/[^</span><span class="se">\\</span><span class="s2">d]/g, &#39;&#39;)) &lt; 10) score -= 50;</span>
+
+<span class="s2">                                results.push({</span>
+<span class="s2">                                    text: text,</span>
+<span class="s2">                                    xpath: getRobustXPath(el),</span>
+<span class="s2">                                    score: score</span>
+<span class="s2">                                });</span>
+<span class="s2">                            }</span>
+<span class="s2">                        }</span>
+<span class="s2">                        return results;</span>
+<span class="s2">                    }</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+
+                <span class="n">all_candidates</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">main_results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">page</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">search_script</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">main_results</span><span class="p">:</span>
+                    <span class="n">res</span><span class="p">[</span><span class="s1">&#39;frame_selector&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">all_candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">frame</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">page</span><span class="o">.</span><span class="n">frames</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">frame_results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">frame</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">search_script</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">frame_results</span><span class="p">:</span>
+                            <span class="n">f_id</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">name</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">&quot;index=</span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="n">res</span><span class="p">[</span><span class="s1">&#39;frame_selector&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">f_id</span>
+                            <span class="n">all_candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="k">continue</span>
+
+                <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">all_candidates</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="mi">5</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Erro na descoberta automática: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">[]</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">browser</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="AuctionMonitor.start">
+<a class="viewcode-back" href="../../index.html#src.monitor.AuctionMonitor.start">[documentos]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">notifier_callback</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Inicia o loop de monitoramento.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="n">async_playwright</span><span class="p">()</span> <span class="k">as</span> <span class="n">p</span><span class="p">:</span>
+            <span class="n">browser</span> <span class="o">=</span> <span class="k">await</span> <span class="n">p</span><span class="o">.</span><span class="n">chromium</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">headless</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">context</span> <span class="o">=</span> <span class="k">await</span> <span class="n">browser</span><span class="o">.</span><span class="n">new_context</span><span class="p">(</span>
+                <span class="n">user_agent</span><span class="o">=</span><span class="s2">&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36&quot;</span>
+            <span class="p">)</span>
+            <span class="n">page</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">new_page</span><span class="p">()</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_stealth</span><span class="p">(</span><span class="n">page</span><span class="p">)</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Navegando para: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">await</span> <span class="n">page</span><span class="o">.</span><span class="n">goto</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">wait_until</span><span class="o">=</span><span class="s2">&quot;load&quot;</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60000</span><span class="p">)</span>
+                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+                
+                <span class="k">async</span> <span class="k">def</span> <span class="nf">get_price_element</span><span class="p">():</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="s2">&quot; &gt;&gt; &quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">selector</span><span class="p">:</span>
+                            <span class="n">parts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selector</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &gt;&gt; &quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                            <span class="n">frame_ref</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;frame=&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                            <span class="n">inner_selector</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                            
+                            <span class="n">frame</span> <span class="o">=</span> <span class="kc">None</span>
+                            <span class="k">if</span> <span class="n">frame_ref</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;index=&quot;</span><span class="p">):</span>
+                                <span class="k">try</span><span class="p">:</span>
+                                    <span class="n">idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">frame_ref</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">page</span><span class="o">.</span><span class="n">frames</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">idx</span><span class="p">:</span>
+                                        <span class="n">frame</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">frames</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+                                <span class="k">except</span><span class="p">:</span>
+                                    <span class="k">pass</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">frame</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">frame</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">frame_ref</span><span class="p">)</span> <span class="ow">or</span> <span class="n">page</span><span class="o">.</span><span class="n">frame</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">frame_ref</span><span class="p">))</span>
+                                <span class="k">if</span> <span class="ow">not</span> <span class="n">frame</span><span class="p">:</span>
+                                    <span class="n">frame_element</span> <span class="o">=</span> <span class="k">await</span> <span class="n">page</span><span class="o">.</span><span class="n">query_selector</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;iframe#</span><span class="si">{</span><span class="n">frame_ref</span><span class="si">}</span><span class="s2">, iframe[name=&#39;</span><span class="si">{</span><span class="n">frame_ref</span><span class="si">}</span><span class="s2">&#39;]&quot;</span><span class="p">)</span>
+                                    <span class="k">if</span> <span class="n">frame_element</span><span class="p">:</span>
+                                        <span class="n">frame</span> <span class="o">=</span> <span class="k">await</span> <span class="n">frame_element</span><span class="o">.</span><span class="n">content_frame</span><span class="p">()</span>
+                            
+                            <span class="k">if</span> <span class="n">frame</span><span class="p">:</span>
+                                <span class="k">return</span> <span class="k">await</span> <span class="n">frame</span><span class="o">.</span><span class="n">query_selector</span><span class="p">(</span><span class="n">inner_selector</span><span class="p">)</span>
+                            <span class="k">return</span> <span class="kc">None</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">return</span> <span class="k">await</span> <span class="n">page</span><span class="o">.</span><span class="n">query_selector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">selector</span><span class="p">)</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="kc">None</span>
+
+                <span class="c1"># Tentativa de captura inicial com retentativa se estiver vazio</span>
+                <span class="n">text_value</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">for</span> <span class="n">retry</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+                    <span class="n">element</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_price_element</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">element</span><span class="p">:</span>
+                        <span class="n">text_value</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="n">element</span><span class="o">.</span><span class="n">inner_text</span><span class="p">())</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">text_value</span><span class="p">:</span>
+                            <span class="k">break</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Aguardando valor real carregar... (Tentativa </span><span class="si">{</span><span class="n">retry</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/5)&quot;</span><span class="p">)</span>
+                    <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">text_value</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elemento </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">selector</span><span class="si">}</span><span class="s2"> encontrado, mas está sem texto/valor.&quot;</span><span class="p">)</span>
+                    <span class="k">return</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">current_value</span> <span class="o">=</span> <span class="n">parse_price</span><span class="p">(</span><span class="n">text_value</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Erro ao converter valor &#39;</span><span class="si">{</span><span class="n">text_value</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">return</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Monitoramento iniciado. Valor: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                
+                <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">)</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">element</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_price_element</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">element</span><span class="p">:</span>
+                            <span class="n">new_text</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="n">element</span><span class="o">.</span><span class="n">inner_text</span><span class="p">())</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">new_text</span><span class="p">:</span>
+                                <span class="k">continue</span> <span class="c1"># Ignora frames que piscaram vazios</span>
+                            
+                            <span class="n">new_value</span> <span class="o">=</span> <span class="n">parse_price</span><span class="p">(</span><span class="n">new_text</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">new_value</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_value</span><span class="p">:</span>
+                                <span class="n">log_price_change</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_value</span><span class="p">,</span> <span class="n">new_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">selector</span><span class="p">)</span>
+                                <span class="k">await</span> <span class="n">notifier_callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_value</span><span class="p">,</span> <span class="n">new_value</span><span class="p">)</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">current_value</span> <span class="o">=</span> <span class="n">new_value</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">await</span> <span class="n">page</span><span class="o">.</span><span class="n">mouse</span><span class="o">.</span><span class="n">wheel</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span> <span class="c1"># Acorda o lazy loading</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Erro na iteração: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Erro fatal: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">browser</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Direitos autorais 2026, Grupo de Algen.</p>
+  </div>
+
+  Compilado com <a href="https://www.sphinx-doc.org/">Sphinx</a> usando um
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    fornecido por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

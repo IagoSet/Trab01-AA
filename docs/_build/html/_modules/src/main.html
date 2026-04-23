@@ -1,0 +1,202 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="pt-BR" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.main &mdash; Documentação Assistente de Lances 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=c0c8e3fa"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/translations.js?v=71a39b36"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../../genindex.html" />
+    <link rel="search" title="Buscar" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Assistente de Lances
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Pesquisar documentos" aria-label="Pesquisar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navegação">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Menu de navegação móvel" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Assistente de Lances</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Navegação da página">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Código do módulo</a></li>
+      <li class="breadcrumb-item active">src.main</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código-fonte para src.main</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">rich.prompt</span> <span class="kn">import</span> <span class="n">Prompt</span>
+<span class="kn">from</span> <span class="nn">rich.panel</span> <span class="kn">import</span> <span class="n">Panel</span>
+<span class="kn">from</span> <span class="nn">src.validators</span> <span class="kn">import</span> <span class="n">validate_username</span><span class="p">,</span> <span class="n">validate_url</span><span class="p">,</span> <span class="n">validate_timeout</span><span class="p">,</span> <span class="n">validate_email</span>
+<span class="kn">from</span> <span class="nn">src.logger</span> <span class="kn">import</span> <span class="n">setup_logger</span><span class="p">,</span> <span class="n">console</span><span class="p">,</span> <span class="n">log_action</span>
+<span class="kn">from</span> <span class="nn">src.monitor</span> <span class="kn">import</span> <span class="n">AuctionMonitor</span>
+<span class="kn">from</span> <span class="nn">src.notifier</span> <span class="kn">import</span> <span class="n">Notifier</span>
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../index.html#src.main.main">[documentos]</a>
+<span class="k">async</span> <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Função principal do assistente de leilão.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">Panel</span><span class="p">(</span><span class="s2">&quot;[bold cyan]Assistente de Lances Automático[/bold cyan]</span><span class="se">\n</span><span class="s2">Monitor de Preços em Tempo Real&quot;</span><span class="p">,</span> <span class="n">expand</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+    
+    <span class="c1"># Coleta de dados com validação obrigatória</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">user_name</span> <span class="o">=</span> <span class="n">Prompt</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">&quot;[bold yellow]Digite seu nome[/bold yellow] (mín. 3 caracteres alfabéticos)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">validate_username</span><span class="p">(</span><span class="n">user_name</span><span class="p">):</span>
+            <span class="k">break</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;[bold red]Nome inválido. Use pelo menos 3 caracteres alfabéticos (apenas letras).[/bold red]&quot;</span><span class="p">)</span>
+
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">setup_logger</span><span class="p">(</span><span class="n">user_name</span><span class="p">)</span>
+    <span class="n">log_action</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Usuário </span><span class="si">{</span><span class="n">user_name</span><span class="si">}</span><span class="s2"> logado com sucesso.&quot;</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">auction_url</span> <span class="o">=</span> <span class="n">Prompt</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">&quot;[bold yellow]URL da página de leilão[/bold yellow]&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">validate_url</span><span class="p">(</span><span class="n">auction_url</span><span class="p">):</span>
+            <span class="k">break</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;[bold red]URL inválida. Por favor, insira uma URL completa (ex: http://...)[/bold red]&quot;</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">recipient_email</span> <span class="o">=</span> <span class="n">Prompt</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">&quot;[bold yellow]E-mail para receber notificações[/bold yellow]&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">validate_email</span><span class="p">(</span><span class="n">recipient_email</span><span class="p">):</span>
+            <span class="k">break</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;[bold red]E-mail inválido. Por favor, insira um e-mail correto.[/bold red]&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Descoberta Automática de Preço</span>
+    <span class="n">xpath_selector</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">console</span><span class="o">.</span><span class="n">status</span><span class="p">(</span><span class="s2">&quot;[bold cyan]Tentando encontrar o preço automaticamente...[/bold cyan]&quot;</span><span class="p">):</span>
+        <span class="n">temp_monitor</span> <span class="o">=</span> <span class="n">AuctionMonitor</span><span class="p">(</span><span class="n">auction_url</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+        <span class="n">candidates</span> <span class="o">=</span> <span class="k">await</span> <span class="n">temp_monitor</span><span class="o">.</span><span class="n">discover_price_elements</span><span class="p">()</span>
+    
+    <span class="k">if</span> <span class="n">candidates</span><span class="p">:</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold green]Encontrei os seguintes campos que parecem ser o preço:[/bold green]&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">location</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot; (Frame: </span><span class="si">{</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;frame_selector&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span> <span class="k">if</span> <span class="n">c</span><span class="p">[</span><span class="s1">&#39;frame_selector&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">. [bold yellow]</span><span class="si">{</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">[/bold yellow]</span><span class="si">{</span><span class="n">location</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">choice</span> <span class="o">=</span> <span class="n">Prompt</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold cyan]Escolha o número do preço correto ou digite &#39;m&#39; para manual[/bold cyan]&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">choice</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">and</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nb">int</span><span class="p">(</span><span class="n">choice</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">):</span>
+            <span class="n">selected</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">choice</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">selected</span><span class="p">[</span><span class="s1">&#39;frame_selector&#39;</span><span class="p">]:</span>
+                <span class="n">xpath_selector</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;frame=</span><span class="si">{</span><span class="n">selected</span><span class="p">[</span><span class="s1">&#39;frame_selector&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> &gt;&gt; xpath=</span><span class="si">{</span><span class="n">selected</span><span class="p">[</span><span class="s1">&#39;xpath&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">xpath_selector</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;xpath=</span><span class="si">{</span><span class="n">selected</span><span class="p">[</span><span class="s1">&#39;xpath&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[bold green]Selecionado:[/bold green] </span><span class="si">{</span><span class="n">selected</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">xpath_selector</span> <span class="o">=</span> <span class="n">Prompt</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">&quot;[bold yellow]Cole o XPath ou Seletor do navegador[/bold yellow]&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;[yellow]Não consegui encontrar o preço automaticamente.[/yellow]&quot;</span><span class="p">)</span>
+        <span class="n">xpath_selector</span> <span class="o">=</span> <span class="n">Prompt</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">&quot;[bold yellow]XPath ou Seletor do campo de preço[/bold yellow]&quot;</span><span class="p">)</span>
+    
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">timeout_str</span> <span class="o">=</span> <span class="n">Prompt</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">&quot;[bold yellow]Intervalo de monitoramento (segundos)[/bold yellow]&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;5&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">validate_timeout</span><span class="p">(</span><span class="n">timeout_str</span><span class="p">):</span>
+            <span class="n">interval</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">timeout_str</span><span class="p">)</span>
+            <span class="k">break</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;[bold red]Timeout inválido. Insira um número inteiro positivo.[/bold red]&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Inicializa componentes</span>
+    <span class="n">notifier</span> <span class="o">=</span> <span class="n">Notifier</span><span class="p">(</span><span class="n">recipient_email</span><span class="p">)</span>
+    <span class="n">monitor</span> <span class="o">=</span> <span class="n">AuctionMonitor</span><span class="p">(</span><span class="n">auction_url</span><span class="p">,</span> <span class="n">xpath_selector</span><span class="p">,</span> <span class="n">interval</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_price_change</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="n">new_val</span><span class="p">):</span>
+        <span class="n">log_action</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Iniciando notificação de mudança: </span><span class="si">{</span><span class="n">old_val</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">new_val</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">success</span> <span class="o">=</span> <span class="k">await</span> <span class="n">notifier</span><span class="o">.</span><span class="n">send_notification</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="n">new_val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">success</span><span class="p">:</span>
+            <span class="n">log_action</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="s2">&quot;Notificação enviada com sucesso por e-mail.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">log_action</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="s2">&quot;Falha ao enviar e-mail de notificação.&quot;</span><span class="p">)</span>
+
+    <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold green]Iniciando monitoramento em: </span><span class="si">{</span><span class="n">auction_url</span><span class="si">}</span><span class="s2">[/bold green]&quot;</span><span class="p">)</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;[italic blue]Pressione Ctrl+C para encerrar com segurança.[/italic blue]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">await</span> <span class="n">monitor</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">on_price_change</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="n">log_action</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="s2">&quot;Monitoramento encerrado pelo usuário via Ctrl+C.&quot;</span><span class="p">)</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold yellow]Encerrando assistente...[/bold yellow]&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Erro inesperado no sistema: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="k">pass</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Direitos autorais 2026, Grupo de Algen.</p>
+  </div>
+
+  Compilado com <a href="https://www.sphinx-doc.org/">Sphinx</a> usando um
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    fornecido por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

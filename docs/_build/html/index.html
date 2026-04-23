@@ -1,0 +1,303 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="pt-BR" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bem-vindo à documentação do Assistente de Lances! &mdash; Documentação Assistente de Lances 1.0.0</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=c0c8e3fa"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/translations.js?v=71a39b36"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="genindex.html" />
+    <link rel="search" title="Buscar" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            Assistente de Lances
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Pesquisar documentos" aria-label="Pesquisar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navegação">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Bem-vindo à documentação do Assistente de Lances!</a><ul>
+<li><a class="reference internal" href="#module-src.main">Módulo Principal</a><ul>
+<li><a class="reference internal" href="#src.main.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-src.monitor">Monitoramento</a><ul>
+<li><a class="reference internal" href="#src.monitor.AuctionMonitor"><code class="docutils literal notranslate"><span class="pre">AuctionMonitor</span></code></a><ul>
+<li><a class="reference internal" href="#src.monitor.AuctionMonitor.discover_price_elements"><code class="docutils literal notranslate"><span class="pre">AuctionMonitor.discover_price_elements()</span></code></a></li>
+<li><a class="reference internal" href="#src.monitor.AuctionMonitor.start"><code class="docutils literal notranslate"><span class="pre">AuctionMonitor.start()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-src.validators">Validações</a><ul>
+<li><a class="reference internal" href="#src.validators.parse_price"><code class="docutils literal notranslate"><span class="pre">parse_price()</span></code></a></li>
+<li><a class="reference internal" href="#src.validators.validate_email"><code class="docutils literal notranslate"><span class="pre">validate_email()</span></code></a></li>
+<li><a class="reference internal" href="#src.validators.validate_timeout"><code class="docutils literal notranslate"><span class="pre">validate_timeout()</span></code></a></li>
+<li><a class="reference internal" href="#src.validators.validate_url"><code class="docutils literal notranslate"><span class="pre">validate_url()</span></code></a></li>
+<li><a class="reference internal" href="#src.validators.validate_username"><code class="docutils literal notranslate"><span class="pre">validate_username()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-src.notifier">Notificação</a><ul>
+<li><a class="reference internal" href="#src.notifier.Notifier"><code class="docutils literal notranslate"><span class="pre">Notifier</span></code></a><ul>
+<li><a class="reference internal" href="#src.notifier.Notifier.send_notification"><code class="docutils literal notranslate"><span class="pre">Notifier.send_notification()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-src.logger">Logs</a><ul>
+<li><a class="reference internal" href="#src.logger.log_action"><code class="docutils literal notranslate"><span class="pre">log_action()</span></code></a></li>
+<li><a class="reference internal" href="#src.logger.log_price_change"><code class="docutils literal notranslate"><span class="pre">log_price_change()</span></code></a></li>
+<li><a class="reference internal" href="#src.logger.setup_logger"><code class="docutils literal notranslate"><span class="pre">setup_logger()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-e-tabelas">Índices e Tabelas</a></li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Menu de navegação móvel" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">Assistente de Lances</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Navegação da página">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Bem-vindo à documentação do Assistente de Lances!</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> Ver código-fonte da página</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="bem-vindo-a-documentacao-do-assistente-de-lances">
+<h1>Bem-vindo à documentação do Assistente de Lances!<a class="headerlink" href="#bem-vindo-a-documentacao-do-assistente-de-lances" title="Link para este cabeçalho"></a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<section id="module-src.main">
+<span id="modulo-principal"></span><h2>Módulo Principal<a class="headerlink" href="#module-src.main" title="Link para este cabeçalho"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="src.main.main">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">src.main.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/main.html#main"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.main.main" title="Link para esta definição"></a></dt>
+<dd><p>Função principal do assistente de leilão.</p>
+</dd></dl>
+
+</section>
+<section id="module-src.monitor">
+<span id="monitoramento"></span><h2>Monitoramento<a class="headerlink" href="#module-src.monitor" title="Link para este cabeçalho"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="src.monitor.AuctionMonitor">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">src.monitor.</span></span><span class="sig-name descname"><span class="pre">AuctionMonitor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selector</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/monitor.html#AuctionMonitor"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.monitor.AuctionMonitor" title="Link para esta definição"></a></dt>
+<dd><p>Monitora uma URL em busca de alterações de preço, lidando com iFrames,
+Shadow DOM e proteções anti-bot.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="src.monitor.AuctionMonitor.discover_price_elements">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">discover_price_elements</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/monitor.html#AuctionMonitor.discover_price_elements"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.monitor.AuctionMonitor.discover_price_elements" title="Link para esta definição"></a></dt>
+<dd><p>Tenta encontrar preços na página principal e dentro de todos os iFrames.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.monitor.AuctionMonitor.start">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">notifier_callback</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/monitor.html#AuctionMonitor.start"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.monitor.AuctionMonitor.start" title="Link para esta definição"></a></dt>
+<dd><p>Inicia o loop de monitoramento.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-src.validators">
+<span id="validacoes"></span><h2>Validações<a class="headerlink" href="#module-src.validators" title="Link para este cabeçalho"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="src.validators.parse_price">
+<span class="sig-prename descclassname"><span class="pre">src.validators.</span></span><span class="sig-name descname"><span class="pre">parse_price</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">price_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/src/validators.html#parse_price"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.validators.parse_price" title="Link para esta definição"></a></dt>
+<dd><p>Converte uma string de preço (ex: ‘R$ 1.234,50’) em um float.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>price_str</strong> (<em>str</em>) – Texto capturado da página.</p>
+</dd>
+<dt class="field-even">Retorna<span class="colon">:</span></dt>
+<dd class="field-even"><p>Valor numérico limpo.</p>
+</dd>
+<dt class="field-odd">Tipo de retorno<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Complexity:</dt><dd><p>O(n) - Percorre a string uma vez com regex.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.validators.validate_email">
+<span class="sig-prename descclassname"><span class="pre">src.validators.</span></span><span class="sig-name descname"><span class="pre">validate_email</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">email</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/src/validators.html#validate_email"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.validators.validate_email" title="Link para esta definição"></a></dt>
+<dd><p>Valida se o e-mail fornecido é um endereço válido.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>email</strong> – E-mail a ser validado.</p>
+</dd>
+<dt class="field-even">Retorna<span class="colon">:</span></dt>
+<dd class="field-even"><p>True se válido, False caso contrário.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.validators.validate_timeout">
+<span class="sig-prename descclassname"><span class="pre">src.validators.</span></span><span class="sig-name descname"><span class="pre">validate_timeout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/src/validators.html#validate_timeout"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.validators.validate_timeout" title="Link para esta definição"></a></dt>
+<dd><p>Valida se o timeout fornecido é um número inteiro positivo.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout_str</strong> – String representando o timeout.</p>
+</dd>
+<dt class="field-even">Retorna<span class="colon">:</span></dt>
+<dd class="field-even"><p>True se válido, False caso contrário.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.validators.validate_url">
+<span class="sig-prename descclassname"><span class="pre">src.validators.</span></span><span class="sig-name descname"><span class="pre">validate_url</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/src/validators.html#validate_url"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.validators.validate_url" title="Link para esta definição"></a></dt>
+<dd><p>Valida se a string fornecida é uma URL válida.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>url</strong> – URL a ser validada.</p>
+</dd>
+<dt class="field-even">Retorna<span class="colon">:</span></dt>
+<dd class="field-even"><p>True se válida, False caso contrário.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.validators.validate_username">
+<span class="sig-prename descclassname"><span class="pre">src.validators.</span></span><span class="sig-name descname"><span class="pre">validate_username</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/src/validators.html#validate_username"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.validators.validate_username" title="Link para esta definição"></a></dt>
+<dd><p>Valida se o nome de usuário tem pelo menos 3 caracteres alfabéticos.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – Nome a ser validado.</p>
+</dd>
+<dt class="field-even">Retorna<span class="colon">:</span></dt>
+<dd class="field-even"><p>True se válido, False caso contrário.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-src.notifier">
+<span id="notificacao"></span><h2>Notificação<a class="headerlink" href="#module-src.notifier" title="Link para este cabeçalho"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="src.notifier.Notifier">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">src.notifier.</span></span><span class="sig-name descname"><span class="pre">Notifier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">recipient_email</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/notifier.html#Notifier"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.notifier.Notifier" title="Link para esta definição"></a></dt>
+<dd><p>Responsável por enviar notificações de mudança de preço por e-mail.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="src.notifier.Notifier.send_notification">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">send_notification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/notifier.html#Notifier.send_notification"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.notifier.Notifier.send_notification" title="Link para esta definição"></a></dt>
+<dd><p>Envia um e-mail informando a alteração de preço.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-src.logger">
+<span id="logs"></span><h2>Logs<a class="headerlink" href="#module-src.logger" title="Link para este cabeçalho"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="src.logger.log_action">
+<span class="sig-prename descclassname"><span class="pre">src.logger.</span></span><span class="sig-name descname"><span class="pre">log_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logger</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_desc</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/logger.html#log_action"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.logger.log_action" title="Link para esta definição"></a></dt>
+<dd><p>Registra uma ação genérica do usuário ou do sistema.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.logger.log_price_change">
+<span class="sig-prename descclassname"><span class="pre">src.logger.</span></span><span class="sig-name descname"><span class="pre">log_price_change</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logger</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">old_price</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_price</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xpath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/logger.html#log_price_change"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.logger.log_price_change" title="Link para esta definição"></a></dt>
+<dd><p>Registra especificamente uma mudança de preço.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.logger.setup_logger">
+<span class="sig-prename descclassname"><span class="pre">src.logger.</span></span><span class="sig-name descname"><span class="pre">setup_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/logger.html#setup_logger"><span class="viewcode-link"><span class="pre">[código-fonte]</span></span></a><a class="headerlink" href="#src.logger.setup_logger" title="Link para esta definição"></a></dt>
+<dd><p>Configura o sistema de log persistente e no console.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parâmetros<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>user_name</strong> – Nome do usuário para registro inicial no log.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+<section id="indices-e-tabelas">
+<h1>Índices e Tabelas<a class="headerlink" href="#indices-e-tabelas" title="Link para este cabeçalho"></a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Índice</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Índice do Módulo</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Página de Busca</span></a></p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Direitos autorais 2026, Grupo de Algen.</p>
+  </div>
+
+  Compilado com <a href="https://www.sphinx-doc.org/">Sphinx</a> usando um
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    fornecido por <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
