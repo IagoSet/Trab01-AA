@@ -2,16 +2,16 @@
 
 Sistema robusto em Python para monitoramento de preços em páginas de leilão dinâmicas e notificação automática.
 
-## 🛡️ Manual Tático de Sobrevivência (Guia para a Equipe)
-Este guia detalha os obstáculos que o sistema está preparado para enfrentar caso o professor escolha sites complexos ou protegidos durante a apresentação.
+## 🚀 Capacidades Técnicas e Resiliência
+O sistema foi projetado para operar em ambientes web complexos, garantindo a extração de dados mesmo em cenários de alta interatividade.
 
-| Obstáculo | O que é? | Nossa Solução |
+| Cenário de Uso | Descrição Técnica | Implementação |
 | :--- | :--- | :--- |
-| **iFrames** | Uma página dentro da outra (comum na B3 e Widgets). | O robô realiza busca recursiva em todos os frames e usa o seletor `frame >> xpath`. |
-| **Anti-Bot (Cloudflare)** | Sites que bloqueiam robôs (Amazon, Magalu). | Implementado `playwright-stealth` para mimetizar comportamento humano e headers reais. |
-| **Lazy Loading** | Preços que só aparecem ao rolar a página. | Função de `auto-scroll` automático antes de iniciar a captura do preço. |
-| **Shadow DOM** | Elementos "escondidos" em componentes isolados. | Seletores do Playwright configurados para atravessar o Shadow DOM por padrão. |
-| **Sincronismo SPA** | Preços que demoram a carregar via JavaScript. | Espera inteligente por `networkidle` + delay de estabilização de 3s. |
+| **iFrames & Frames** | Conteúdo renderizado em documentos aninhados (comum em widgets financeiros). | Busca recursiva em múltiplos contextos e endereçamento via seletores compostos. |
+| **Arquitetura Anti-Bot** | Proteções de cabeçalho e detecção de automação. | Integração com `playwright-stealth` para mimetização de comportamento humano. |
+| **Carregamento Assíncrono** | Elementos carregados sob demanda ou via Lazy Loading. | Lógica de `auto-scroll` e sincronização por estado de rede (`networkidle`). |
+| **Shadow DOM** | Encapsulamento de componentes modernos (Web Components). | Utilização de seletores profundos que atravessam a árvore do Shadow DOM. |
+| **Single Page Apps (SPA)** | Atualizações de estado sem recarregamento de página. | Observadores de mudança de valor com delay de estabilização configurável. |
 
 ---
 
