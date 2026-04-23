@@ -47,7 +47,15 @@ def validate_email(email: str) -> bool:
 def parse_price(price_str: str) -> float:
     """
     Converte uma string de preço (ex: 'R$ 1.234,50') em um float.
-    Trata casos de duplicação (ex: '1439.101439.10') pegando apenas o primeiro valor.
+    
+    Args:
+        price_str (str): Texto capturado da página.
+        
+    Returns:
+        float: Valor numérico limpo.
+        
+    Complexity:
+        O(n) - Percorre a string uma vez com regex.
     """
     # Encontra todos os padrões que se parecem com números (incluindo pontos e vírgulas)
     # A regex busca sequências numéricas que podem ter separadores
