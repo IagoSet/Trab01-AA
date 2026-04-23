@@ -1,6 +1,7 @@
 import asyncio
+import re
 from playwright.async_api import async_playwright
-from playwright_stealth import stealth_async
+from playwright_stealth import Stealth
 from src.validators import parse_price
 from src.logger import log_price_change
 
@@ -19,7 +20,8 @@ class AuctionMonitor:
 
     async def _apply_stealth(self, page):
         """Aplica camuflagem para evitar detecção de robôs."""
-        await stealth_async(page)
+        stealth_obj = Stealth()
+        await stealth_obj.apply_stealth_async(page)
 
     async def _auto_scroll(self, page):
         """Rola a página para carregar elementos de lazy loading."""
@@ -54,24 +56,27 @@ class AuctionMonitor:
             await self._apply_stealth(page)
             
             try:
-                await page.goto(self.url, wait_until="networkidle", timeout=60000)
+                await page.goto(self.url, wait_until="load", timeout=60000)
+                await page.wait_for_timeout(5000)
                 await self._auto_scroll(page)
                 
-                # Script de busca que será executado em cada frame
                 search_script = """
                     () => {
                         const results = [];
-                        const priceRegex = /(R\\$\\s?|\\$|€)?\\s?\\d+([.,]\\d{2,3})*([.,]\\d{2})?/i;
-                        const keywords = ['price', 'valor', 'offer', 'sale', 'current', 'main', 'pix', 'boleto'];
+                        const priceRegex = /\\d{1,3}([.,]\\d{3})*([.,]\\d{2})?/;
+                        const blacklist = ['alerta', 'notificação', 'aviso', 'menu', 'search', 'busca', 'cookie', 'login'];
+                        const keywords = ['price', 'valor', 'offer', 'sale', 'current', 'main', 'index', 'cotação', 'points', 'pontos'];
                         
                         function getRobustXPath(element) {
-                            if (element.id) return `//*[@id="${element.id}"]`;
-                            const attrs = ['data-test', 'data-testid', 'data-qa', 'itemprop'];
+                            if (element.id && !element.id.includes('ember')) return `//*[@id="${element.id}"]`;
+                            
+                            const attrs = ['data-test', 'data-testid', 'data-qa', 'itemprop', 'data-symbol'];
                             for (const attr of attrs) {
                                 if (element.getAttribute(attr)) {
                                     return `//${element.tagName.toLowerCase()}[@${attr}="${element.getAttribute(attr)}"]`;
                                 }
                             }
+                            
                             let path = '';
                             let current = element;
                             for (let i = 0; i < 3 && current && current !== document.body; i++) {
@@ -91,13 +96,18 @@ class AuctionMonitor:
                         const elements = document.querySelectorAll('span, p, div, b, strong, h1, h2, font');
                         for (const el of elements) {
                             const text = el.innerText.trim();
-                            if (priceRegex.test(text) && text.length < 25 && el.children.length <= 1) {
+                            const isNoise = blacklist.some(word => text.toLowerCase().includes(word));
+                            if (isNoise) continue;
+
+                            if (priceRegex.test(text) && text.length < 20 && el.children.length <= 1) {
                                 let score = 0;
                                 const content = (el.id + el.className + (el.getAttribute('data-test') || '')).toLowerCase();
+                                
                                 keywords.forEach(word => { if (content.includes(word)) score += 40; });
-                                if (text.includes('R$')) score += 50;
-                                else if (text.includes('$')) score += 20;
+                                if (text.includes('R$') || text.includes('pts')) score += 50;
                                 if (['H1', 'H2', 'B', 'STRONG'].includes(el.tagName)) score += 30;
+                                if (parseFloat(text.replace(/[^\\d]/g, '')) < 10) score -= 50;
+
                                 results.push({
                                     text: text,
                                     xpath: getRobustXPath(el),
@@ -110,26 +120,21 @@ class AuctionMonitor:
                 """
 
                 all_candidates = []
-                
-                # Busca na página principal
                 main_results = await page.evaluate(search_script)
                 for res in main_results:
                     res['frame_selector'] = None
                     all_candidates.append(res)
 
-                # Busca em todos os frames
-                for i, frame in enumerate(page.frames[1:]): # Pula o main frame
+                for i, frame in enumerate(page.frames[1:]):
                     try:
                         frame_results = await frame.evaluate(search_script)
                         for res in frame_results:
-                            # Tenta identificar o frame por ID ou Name, senão usa index
                             f_id = frame.name or f"index={i+1}"
                             res['frame_selector'] = f_id
                             all_candidates.append(res)
                     except:
                         continue
 
-                # Ordena e filtra
                 return sorted(all_candidates, key=lambda x: x['score'], reverse=True)[:5]
             except Exception as e:
                 self.logger.error(f"Erro na descoberta automática: {e}")
@@ -139,71 +144,92 @@ class AuctionMonitor:
 
     async def start(self, notifier_callback):
         """
-        Inicia o loop de monitoramento com suporte a Frames e Stealth.
+        Inicia o loop de monitoramento.
         """
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-                viewport={'width': 1920, 'height': 1080}
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
             )
             page = await context.new_page()
             await self._apply_stealth(page)
             
             try:
                 self.logger.info(f"Navegando para: {self.url}")
-                await page.goto(self.url, wait_until="networkidle", timeout=60000)
-                await asyncio.sleep(3) # Estabilização
+                await page.goto(self.url, wait_until="load", timeout=60000)
+                await asyncio.sleep(5)
                 
-                # Lógica de seleção (suporta frame >> seletor)
                 async def get_price_element():
-                    if " >> " in self.selector:
-                        parts = self.selector.split(" >> ", 1)
-                        frame_ref = parts[0].replace("frame=", "")
-                        inner_selector = parts[1]
-                        
-                        # Localiza o frame por nome ou id
-                        frame = page.frame(name=frame_ref) or page.frame(url=re.compile(frame_ref))
-                        if not frame:
-                            # Busca por seletor de elemento iframe se não achar por nome
-                            frame_element = await page.query_selector(frame_ref)
-                            if frame_element:
-                                frame = await frame_element.content_frame()
-                        
-                        return await frame.query_selector(inner_selector) if frame else None
-                    else:
-                        return await page.query_selector(self.selector)
+                    try:
+                        if " >> " in self.selector:
+                            parts = self.selector.split(" >> ", 1)
+                            frame_ref = parts[0].replace("frame=", "")
+                            inner_selector = parts[1]
+                            
+                            frame = None
+                            if frame_ref.startswith("index="):
+                                try:
+                                    idx = int(frame_ref.split("=")[1])
+                                    if len(page.frames) > idx:
+                                        frame = page.frames[idx]
+                                except:
+                                    pass
+                            else:
+                                frame = page.frame(name=frame_ref) or page.frame(url=re.compile(frame_ref))
+                                if not frame:
+                                    frame_element = await page.query_selector(f"iframe#{frame_ref}, iframe[name='{frame_ref}']")
+                                    if frame_element:
+                                        frame = await frame_element.content_frame()
+                            
+                            if frame:
+                                return await frame.query_selector(inner_selector)
+                            return None
+                        else:
+                            return await page.query_selector(self.selector)
+                    except:
+                        return None
 
-                element = await get_price_element()
-                if not element:
-                    self.logger.warning("Aguardando elemento aparecer...")
-                    await asyncio.sleep(5)
+                # Tentativa de captura inicial com retentativa se estiver vazio
+                text_value = ""
+                for retry in range(5):
                     element = await get_price_element()
+                    if element:
+                        text_value = (await element.inner_text()).strip()
+                        if text_value:
+                            break
+                    self.logger.warning(f"Aguardando valor real carregar... (Tentativa {retry+1}/5)")
+                    await asyncio.sleep(3)
 
-                if not element:
-                    self.logger.error(f"Elemento {self.selector} não encontrado.")
+                if not text_value:
+                    self.logger.error(f"Elemento {self.selector} encontrado, mas está sem texto/valor.")
                     return
 
-                text_value = await element.inner_text()
-                self.current_value = parse_price(text_value)
-                self.logger.info(f"Monitoramento iniciado. Valor atual: {self.current_value}")
+                try:
+                    self.current_value = parse_price(text_value)
+                except Exception as e:
+                    self.logger.error(f"Erro ao converter valor '{text_value}': {e}")
+                    return
+
+                self.logger.info(f"Monitoramento iniciado. Valor: {self.current_value}")
                 
                 while True:
                     await asyncio.sleep(self.interval)
                     try:
                         element = await get_price_element()
                         if element:
-                            new_text = await element.inner_text()
-                            new_value = parse_price(new_text)
+                            new_text = (await element.inner_text()).strip()
+                            if not new_text:
+                                continue # Ignora frames que piscaram vazios
                             
+                            new_value = parse_price(new_text)
                             if new_value != self.current_value:
                                 log_price_change(self.logger, self.current_value, new_value, self.selector)
                                 await notifier_callback(self.current_value, new_value)
                                 self.current_value = new_value
                         else:
-                            self.logger.warning("Elemento sumiu da página. Tentando reconectar...")
+                            await page.mouse.wheel(0, 100) # Acorda o lazy loading
                     except Exception as e:
-                        self.logger.error(f"Erro na iteração: {e}")
+                        self.logger.debug(f"Erro na iteração: {e}")
                         
             except Exception as e:
                 self.logger.critical(f"Erro fatal: {e}")
