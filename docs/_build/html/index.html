@@ -17,6 +17,7 @@
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/translations.js?v=71a39b36"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Índice" href="genindex.html" />
     <link rel="search" title="Buscar" href="search.html" /> 
@@ -48,6 +49,12 @@
 <li><a class="reference internal" href="#src.main.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li><a class="reference internal" href="#analise-de-eficiencia-algoritmica-big-o">Análise de Eficiência Algorítmica (Big O)</a><ul>
+<li><a class="reference internal" href="#processamento-de-texto-e-conversao-de-precos">1. Processamento de Texto e Conversão de Preços</a></li>
+<li><a class="reference internal" href="#descoberta-automatica-de-elementos">2. Descoberta Automática de Elementos</a></li>
+<li><a class="reference internal" href="#ciclo-de-monitoramento-continuo">3. Ciclo de Monitoramento Contínuo</a></li>
 <li><a class="reference internal" href="#module-src.monitor">Monitoramento</a><ul>
 <li><a class="reference internal" href="#src.monitor.AuctionMonitor"><code class="docutils literal notranslate"><span class="pre">AuctionMonitor</span></code></a><ul>
 <li><a class="reference internal" href="#src.monitor.AuctionMonitor.discover_price_elements"><code class="docutils literal notranslate"><span class="pre">AuctionMonitor.discover_price_elements()</span></code></a></li>
@@ -118,6 +125,34 @@
 <dd><p>Função principal do assistente de leilão.</p>
 </dd></dl>
 
+</section>
+</section>
+<section id="analise-de-eficiencia-algoritmica-big-o">
+<h1>Análise de Eficiência Algorítmica (Big O)<a class="headerlink" href="#analise-de-eficiencia-algoritmica-big-o" title="Link para este cabeçalho"></a></h1>
+<p>O sistema foi projetado priorizando a economia de recursos computacionais, especialmente em páginas com estruturas DOM (Document Object Model) densas. Abaixo, detalhamos a complexidade de tempo das principais rotinas:</p>
+<section id="processamento-de-texto-e-conversao-de-precos">
+<h2>1. Processamento de Texto e Conversão de Preços<a class="headerlink" href="#processamento-de-texto-e-conversao-de-precos" title="Link para este cabeçalho"></a></h2>
+<ul class="simple">
+<li><p><strong>Função:</strong> <code class="docutils literal notranslate"><span class="pre">validators.parse_price</span></code></p></li>
+<li><p><strong>Complexidade:</strong> <span class="math notranslate nohighlight">\(O(n)\)</span>, onde <span class="math notranslate nohighlight">\(n\)</span> é o comprimento da string.</p></li>
+<li><p><strong>Justificativa:</strong> A função utiliza expressões regulares para identificar padrões numéricos. Como o motor de busca de regex percorre a string linearmente para encontrar correspondências, o custo aumenta de forma proporcional ao tamanho do texto capturado.</p></li>
+</ul>
+</section>
+<section id="descoberta-automatica-de-elementos">
+<h2>2. Descoberta Automática de Elementos<a class="headerlink" href="#descoberta-automatica-de-elementos" title="Link para este cabeçalho"></a></h2>
+<ul class="simple">
+<li><p><strong>Função:</strong> <code class="docutils literal notranslate"><span class="pre">AuctionMonitor.discover_price_elements</span></code></p></li>
+<li><p><strong>Complexidade:</strong> <span class="math notranslate nohighlight">\(O(E)\)</span>, onde <span class="math notranslate nohighlight">\(E\)</span> é o número total de elementos no DOM.</p></li>
+<li><p><strong>Justificativa:</strong> O algoritmo realiza uma varredura completa na árvore de elementos da página para aplicar o sistema de pontuação (scoring). Cada elemento é avaliado individualmente, resultando em uma execução linear em relação ao tamanho da página.</p></li>
+</ul>
+</section>
+<section id="ciclo-de-monitoramento-continuo">
+<h2>3. Ciclo de Monitoramento Contínuo<a class="headerlink" href="#ciclo-de-monitoramento-continuo" title="Link para este cabeçalho"></a></h2>
+<ul class="simple">
+<li><p><strong>Função:</strong> <code class="docutils literal notranslate"><span class="pre">AuctionMonitor.start</span></code> (por iteração)</p></li>
+<li><p><strong>Complexidade:</strong> <span class="math notranslate nohighlight">\(O(D)\)</span>, onde <span class="math notranslate nohighlight">\(D\)</span> representa a profundidade ou complexidade do seletor XPath.</p></li>
+<li><p><strong>Justificativa:</strong> Em cada ciclo de verificação, o navegador realiza uma busca direcionada. Ao utilizar XPaths otimizados ou IDs, essa busca é extremamente eficiente, aproximando-se de um custo constante, independentemente do tempo total de execução do programa.</p></li>
+</ul>
 </section>
 <section id="module-src.monitor">
 <span id="monitoramento"></span><h2>Monitoramento<a class="headerlink" href="#module-src.monitor" title="Link para este cabeçalho"></a></h2>
