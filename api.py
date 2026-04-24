@@ -14,7 +14,7 @@ CORS(app)
 # Estado global da automação
 estado_bot = {
     "ativo": False,
-    "preco_atual": 0.0,
+    "preco_atual": "", 
     "usuario": "",
     "email": "",
     "url": "",
@@ -22,20 +22,16 @@ estado_bot = {
     "intervalo": 10
 }
 
-# NOVA IMPLEMENTAÇÃO: Memória de curto prazo para o Front-end
 logs_sessao_atual = []
 
 def escrever_log(mensagem, nivel="INFO"):
-    """Grava o log no arquivo persistente e na memória da interface"""
     timestamp = datetime.now().strftime("%H:%M:%S")
     linha = f"[{timestamp}] [{nivel}] {mensagem}"
-    
-    # 1. Salva no arquivo permanentemente (O Back-end guarda tudo)
     with open('app.log', 'a', encoding='utf-8') as f:
         f.write(linha + "\n")
-        
-    # 2. Salva na memória da sessão para o Front-end exibir
     logs_sessao_atual.append(linha)
+    if len(logs_sessao_atual) > 50:
+        logs_sessao_atual.pop(0)
 
 # ==========================================
 # 1. FUNÇÃO REAL PARA BUSCAR XPATHS
@@ -51,28 +47,29 @@ def extrair_xpaths_reais(url):
             js_code = """
             () => {
                 const resultados = new Set();
-                document.querySelectorAll('span, div, p, strong').forEach(el => {
-                    const texto = el.innerText || '';
+                document.querySelectorAll('span, div, p, strong, h1, h2').forEach(el => {
+                    const texto = (el.innerText || '').trim();
                     const classe = el.className || '';
-                    if(texto.match(/[0-9]+[.,][0-9]{2}/) || (typeof classe === 'string' && classe.toLowerCase().includes('price'))) {
+                    
+                    const ehPreco = texto.match(/[0-9]+[.,][0-9]{2}/);
+                    const ehHora = texto.match(/[0-9]{2}:[0-9]{2}/);
+                    const temClassePrice = typeof classe === 'string' && classe.toLowerCase().includes('price');
+
+                    if((ehPreco || ehHora || temClassePrice) && texto.length < 50) {
                         if(typeof classe === 'string' && classe.trim() !== '') {
                             const classPrincipal = classe.trim().split(' ')[0];
-                            resultados.add(`//${el.tagName.toLowerCase()}[contains(@class, '${classPrincipal}')]`);
+                            if(!['symbol', 'ticker', 'name'].some(s => classPrincipal.toLowerCase().includes(s))) {
+                                resultados.add(`//${el.tagName.toLowerCase()}[contains(@class, '${classPrincipal}')]`);
+                            }
                         }
                     }
                 });
-                return Array.from(resultados).slice(0, 8);
+                return Array.from(resultados).slice(0, 10);
             }
             """
             seletores_js = page.evaluate(js_code)
             browser.close()
-            
-            if seletores_js:
-                escrever_log(f"Sucesso: {len(seletores_js)} seletores mapeados.", "SUCCESS")
-                return seletores_js
-            else:
-                escrever_log("Nenhum seletor óbvio. Recomendado uso Heurístico.", "WARNING")
-                return ["//span[@class='price']", "//div[contains(@class, 'value')]"] 
+            return seletores_js if seletores_js else ["//div", "//span"]
                 
     except Exception as e:
         escrever_log(f"Erro na varredura inicial: {e}", "ERROR")
@@ -81,17 +78,15 @@ def extrair_xpaths_reais(url):
 # ==========================================
 # 2. FUNÇÃO PARA ENVIAR E-MAIL
 # ==========================================
-def enviar_email(destinatario, url, preco_antigo, preco_novo):
-    # COLOQUE SEUS DADOS REAIS AQUI PARA FUNCIONAR
+def enviar_email(destinatario, url, valor_antigo, valor_novo):
     EMAIL_BOT = "jejzksnlabd@gmail.com" 
     SENHA_BOT = "udzl zmrt gltt nncj"
 
     if EMAIL_BOT == "SEU_EMAIL_AQUI@gmail.com":
-        escrever_log("Envio cancelado: Credenciais de e-mail não configuradas.", "WARNING")
         return
 
-    assunto = "ALERTA: Alteração de Preço Detectada!"
-    corpo = f"Mudança de preço no leilão!\n\nURL: {url}\nPreço Antigo: R$ {preco_antigo}\nNovo Preço: R$ {preco_novo}\n"
+    assunto = "ALERTA: Alteração Detectada!"
+    corpo = f"Mudança detectada!\n\nURL: {url}\nValor Antigo: {valor_antigo}\nNovo Valor: {valor_novo}"
     msg = MIMEText(corpo)
     msg['Subject'] = assunto
     msg['From'] = EMAIL_BOT
@@ -101,9 +96,9 @@ def enviar_email(destinatario, url, preco_antigo, preco_novo):
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(EMAIL_BOT, SENHA_BOT)
             server.sendmail(EMAIL_BOT, destinatario, msg.as_string())
-        escrever_log(f"[Notifier] E-mail enviado para {destinatario}", "SUCCESS")
+        escrever_log(f"E-mail enviado para {destinatario}", "SUCCESS")
     except Exception as e:
-        escrever_log(f"[Notifier] Erro SMTP: {e}", "ERROR")
+        escrever_log(f"Erro SMTP: {e}", "ERROR")
 
 # ==========================================
 # 3. LOOP DE MONITORAMENTO (Scraping Real)
@@ -112,37 +107,53 @@ def loop_de_monitoramento_real():
     url = estado_bot["url"]
     seletor = estado_bot["seletor"]
     
+    if seletor.startswith("//") and not seletor.startswith("xpath="):
+        seletor = f"xpath={seletor}"
+    
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         
         while estado_bot["ativo"]:
             try:
-                page.goto(url, timeout=30000, wait_until='domcontentloaded')
-                time.sleep(2) 
+                page.goto(url, timeout=45000, wait_until='domcontentloaded')
+                time.sleep(1) 
                 
-                texto_alvo = page.locator("body").inner_text() if seletor == 'auto' else page.locator(seletor).first.inner_text()
+                if seletor == 'auto':
+                    texto_alvo = page.locator("body").inner_text()
+                else:
+                    elemento = page.locator(seletor).first
+                    elemento.wait_for(state="visible", timeout=10000)
+                    # Força a captura do texto visível completo, ignorando marcações internas
+                    texto_alvo = await page.evaluate(f"document.evaluate('{seletor.replace('xpath=', '')}', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText")
                 
-                numeros = re.findall(r'\d+[.,]\d+', texto_alvo)
-                if numeros:
-                    preco_limpo = numeros[0].replace('.', '').replace(',', '.')
-                    novo_preco = float(preco_limpo)
-                    
-                    if estado_bot["preco_atual"] == 0.0:
-                        estado_bot["preco_atual"] = novo_preco
-                        escrever_log(f"Preço base registrado: R$ {novo_preco:.2f}", "INFO")
-                    
-                    elif novo_preco != estado_bot["preco_atual"]:
-                        preco_antigo = estado_bot["preco_atual"]
-                        estado_bot["preco_atual"] = novo_preco
-                        escrever_log(f"VARIAÇÃO DETECTADA! De R$ {preco_antigo:.2f} para R$ {novo_preco:.2f}", "WARNING")
-                        enviar_email(estado_bot["email"], url, preco_antigo, novo_preco)
+                texto_alvo = " ".join(texto_alvo.split()).replace(" : ", ":")
+                
+                # BUSCA HORA OU PREÇO (Regex mais abrangente para pegar tudo que parece tempo)
+                # Pega formatos como 12:30:45, 12:30 ou até números isolados se for preço
+                horas = re.findall(r'\d{1,2}:\d{2}(?::\d{2})?', texto_alvo)
+                precos = re.findall(r'\d+[.,]\d{2}', texto_alvo)
+                
+                valor_encontrado = None
+                if horas: valor_encontrado = horas[0]
+                elif precos: valor_encontrado = precos[0]
+
+                if valor_encontrado:
+                    if estado_bot["preco_atual"] == "":
+                        estado_bot["preco_atual"] = valor_encontrado
+                        escrever_log(f"Valor inicial registrado: {valor_encontrado}", "SUCCESS")
+                    elif valor_encontrado != estado_bot["preco_atual"]:
+                        valor_antigo = estado_bot["preco_atual"]
+                        estado_bot["preco_atual"] = valor_encontrado
+                        escrever_log(f"MUDANÇA: {valor_antigo} -> {valor_encontrado}", "WARNING")
+                        enviar_email(estado_bot["email"], url, valor_antigo, valor_encontrado)
+                else:
+                    escrever_log("Nenhum valor compatível encontrado.", "DEBUG")
                         
             except Exception as e:
-                escrever_log(f"Falha de leitura no ciclo: {str(e)[:40]}...", "ERROR")
+                escrever_log(f"Erro no monitor: {str(e)[:50]}", "ERROR")
             
-            time.sleep(estado_bot["intervalo"])
-            
+            time.sleep(int(estado_bot["intervalo"]))
         browser.close()
 
 # ==========================================
@@ -151,10 +162,9 @@ def loop_de_monitoramento_real():
 @app.route('/buscar_xpaths', methods=['POST'])
 def buscar_xpaths():
     global logs_sessao_atual
-    logs_sessao_atual.clear() # Limpa o terminal do front a cada nova busca!
-    
+    logs_sessao_atual.clear()
     url = request.json.get('url')
-    escrever_log(f"Usuário solicitou mapeamento para: {url}", "INFO")
+    escrever_log(f"Mapeando: {url}", "INFO")
     seletores = extrair_xpaths_reais(url)
     return jsonify({"xpaths": seletores})
 
@@ -168,28 +178,26 @@ def iniciar_bot():
         "url": dados.get('url'),
         "seletor": dados.get('seletor'),
         "intervalo": int(dados.get('intervalo', 10)),
-        "preco_atual": 0.0
+        "preco_atual": ""
     })
-    
-    escrever_log(f"'{estado_bot['usuario']}' INICIOU o monitor. Intervalo: {estado_bot['intervalo']}s.", "INFO")
+    escrever_log(f"Bot iniciado para {estado_bot['url']}", "INFO")
     threading.Thread(target=loop_de_monitoramento_real, daemon=True).start()
     return jsonify({"status": "Iniciado"})
 
 @app.route('/parar_bot', methods=['POST'])
 def parar_bot():
     estado_bot["ativo"] = False
-    escrever_log(f"Monitoramento parado manualmente.", "WARNING")
+    escrever_log("Bot parado manualmente.", "WARNING")
     return jsonify({"status": "Parado"})
 
 @app.route('/status', methods=['GET'])
 def obter_status():
     return jsonify({"ativo": estado_bot["ativo"], "preco_atual": estado_bot["preco_atual"]})
 
-# Nova rota para o Front-end pegar apenas os logs da sessão atual
 @app.route('/logs', methods=['GET'])
 def obter_logs():
     return jsonify({"logs": logs_sessao_atual})
 
 if __name__ == '__main__':
-    escrever_log("--- Servidor API (Backend) Reiniciado ---", "SYSTEM")
-    app.run(port=5000, debug=True)
+    escrever_log("--- Servidor API Ativo ---", "SYSTEM")
+    app.run(port=5000)

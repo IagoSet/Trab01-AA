@@ -3,32 +3,13 @@ from urllib.parse import urlparse
 import validators
 
 def validate_username(name: str) -> bool:
-    """
-    Valida se o nome de usuário tem pelo menos 3 caracteres alfabéticos.
-    
-    :param name: Nome a ser validado.
-    :return: True se válido, False caso contrário.
-    """
-    # Remove espaços e verifica se contém apenas letras e tem tamanho >= 3
     clean_name = name.replace(" ", "")
     return len(clean_name) >= 3 and clean_name.isalpha()
 
 def validate_url(url: str) -> bool:
-    """
-    Valida se a string fornecida é uma URL válida.
-    
-    :param url: URL a ser validada.
-    :return: True se válida, False caso contrário.
-    """
     return bool(validators.url(url))
 
 def validate_timeout(timeout_str: str) -> bool:
-    """
-    Valida se o timeout fornecido é um número inteiro positivo.
-    
-    :param timeout_str: String representando o timeout.
-    :return: True se válido, False caso contrário.
-    """
     try:
         val = int(timeout_str)
         return val > 0
@@ -36,55 +17,44 @@ def validate_timeout(timeout_str: str) -> bool:
         return False
 
 def validate_email(email: str) -> bool:
-    """
-    Valida se o e-mail fornecido é um endereço válido.
-    
-    :param email: E-mail a ser validado.
-    :return: True se válido, False caso contrário.
-    """
     return bool(validators.email(email))
 
-def parse_price(price_str: str) -> float:
+def parse_price(price_str: str):
     """
-    Converte uma string de preço (ex: 'R$ 1.234,50') em um float.
+    Tenta extrair um valor inteligente do texto.
+    Se for hora (HH:MM:SS), mantém como string.
+    Se for preço, converte para float.
+    """
+    price_str = price_str.strip()
     
-    Args:
-        price_str (str): Texto capturado da página.
-        
-    Returns:
-        float: Valor numérico limpo.
-        
-    Complexity:
-        O(n) - Percorre a string uma vez com regex.
-    """
-    # Encontra todos os padrões que se parecem com números (incluindo pontos e vírgulas)
-    # A regex busca sequências numéricas que podem ter separadores
+    # 1. Verifica se é um horário (HH:MM:SS ou HH:MM)
+    if re.search(r'\d{1,2}:\d{2}(?::\d{2})?', price_str):
+        # Extrai apenas a parte da hora para evitar lixo ao redor
+        match = re.search(r'\d{1,2}:\d{2}(?::\d{2})?', price_str)
+        return match.group(0)
+
+    # 2. Lógica Original de Preço
     matches = re.findall(r'\d+[.,\d]*', price_str)
-    
     if not matches:
-        raise ValueError(f"Não foi possível encontrar um valor numérico em: {price_str}")
+        # Se não achou nada numérico, retorna o texto bruto como fallback
+        return price_str
 
-    # Pegamos apenas a primeira ocorrência encontrada para evitar duplicações do site
-    clean_str = matches[0]
-    
-    # Se o número terminar com ponto ou vírgula (ex: '1.200.'), removemos
-    clean_str = clean_str.rstrip('.,')
+    clean_str = matches[0].rstrip('.,')
 
-    # Lógica para tratar formatos brasileiros (1.234,50) e americanos (1,234.50)
     if ',' in clean_str and '.' in clean_str:
         if clean_str.rfind(',') > clean_str.rfind('.'):
-            # Formato brasileiro: 1.234,50 -> 1234.50
             clean_str = clean_str.replace('.', '').replace(',', '.')
         else:
-            # Formato americano: 1,234.50 -> 1234.50
             clean_str = clean_str.replace(',', '')
     elif ',' in clean_str:
-        # Apenas vírgula: assumimos que é o separador decimal (ex: 1234,50)
+        # Se tem vírgula e parece decimal (ex: 10,50 ou 1.200,00)
+        # Se houver apenas uma vírgula e for o separador de milhar/decimal
         clean_str = clean_str.replace(',', '.')
     
     try:
+        # Se após a limpeza ainda tiver múltiplos pontos, é formato de milhar sem decimal
+        if clean_str.count('.') > 1:
+            clean_str = clean_str.replace('.', '')
         return float(clean_str)
     except ValueError:
-        # Fallback caso a limpeza falhe: remove tudo que não for dígito ou ponto
-        final_attempt = re.sub(r'[^\d.]', '', clean_str)
-        return float(final_attempt)
+        return price_str # Retorna bruto se tudo falhar
