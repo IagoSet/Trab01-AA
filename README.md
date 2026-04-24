@@ -42,10 +42,25 @@ O sistema foi projetado para operar em ambientes web complexos, garantindo a ext
 3.  **Cross-Frame Navigation:** Capacidade de extrair dados de widgets financeiros isolados.
 4.  **SMTP Seguro:** Notificação por e-mail configurada para Gmail/Outlook.
 
-### 📈 Análise de Complexidade (Big O)
+## 📈 Análise de Complexidade (Big O)
 
-*   **Tempo:** $O(N \cdot (E + F))$, onde $N$ é o número de checagens, $E$ elementos no DOM e $F$ o número de frames a serem percorridos.
-*   **Espaço:** $O(M)$ de memória do navegador, dependente da densidade de mídia do site monitorado.
+O sistema foi projetado sob a ótica da eficiência algorítmica e escalabilidade, garantindo estabilidade mesmo em sites com estruturas DOM (Document Object Model) extremamente densas e dinâmicas.
+
+### 1. Complexidade de Tempo (Time Complexity)
+*Equação de Pior Caso:* $O(N \cdot (E + F))$
+
+* *$N$ (Número de Iterações):* Como o monitoramento é contínuo, a complexidade temporal total é linear em relação à duração da sessão e à frequência de checagem definida pelo usuário.
+* *$E$ (Elementos no DOM):* Na fase de *Descoberta Automática* e em casos de fallback (perda de seletor), o sistema realiza uma varredura heurística em todos os elementos da página para aplicar um algoritmo de scoring. Isso garante resiliência contra mudanças sutis no layout do site.
+* *$F$ (Frames/Contextos):* Dada a arquitetura de portais modernos que utilizam widgets financeiros e anúncios, o sistema executa buscas transversais em múltiplos frames. A complexidade é proporcional à soma dos elementos em todos os contextos ativos que o driver precisa percorrer.
+
+### 2. Complexidade de Espaço (Space Complexity)
+*Equação:* $O(M)$
+
+* *$M$ (Pegada de Memória do Browser):* Enquanto o script Python mantém um estado de memória constante $O(1)$ (armazenando apenas o valor de preço atual e anterior), a utilização de recursos do sistema é dominada pela instância do Chromium (via Playwright). O consumo de RAM ($M$) é ditado pela densidade de mídia, scripts de terceiros e buffers de renderização do site monitorado.
+
+### 3. Eficiência de Parsing e Extração
+* *Conversão Numérica:* $O(k)$, onde $k$ é o comprimento da string capturada. 
+* *Justificativa:* A extração via Expressões Regulares (Regex) percorre o texto de forma linear para sanitização e conversão. Por operar em strings curtas (preços), a execução é de tempo desprezível, garantindo que o gargalo do sistema seja apenas a latência de rede (I/O Bound).
 
 ---
 
