@@ -6,3 +6,5 @@ rich
 sphinx
 sphinx-rtd-theme
 validators
+flask
+flask-cors

@@ -34,6 +34,8 @@ O sistema foi projetado para operar em ambientes web complexos, garantindo a ext
 | **`notifier.py`** | Notificações via E-mail (SMTP). |
 | **`validators.py`** | Sanitização de dados e Extração Numérica (Regex). |
 | **`logger.py`** | Observabilidade e persistência de eventos. |
+| **`api.py`** | Motor lógico de automação. |
+| **`index.html`** | Interface visual do usuário. |
 
 ### 🛠️ Tecnologias e Padrões Adotados
 
@@ -80,11 +82,17 @@ O sistema foi projetado sob a ótica da eficiência algorítmica e escalabilidad
 
 3. Execute o assistente:
    ```bash
-   python -m src.main
+   python -m http.server 8000
+
+   Em outro terminal:
+   python api.py
+
+   Entrar no link:
+   http://localhost:8000/front/index.html
    ```
 
 ## Integrantes
 Iago de Souza Gomes - 2312130087
 Sofia Vaz da Costa Xavier - 2312130112
 Rafael Augusto Santos Abreu - 2312130113
-Lucas Farias - 2312130040
+Lucas Faria - 2312130040

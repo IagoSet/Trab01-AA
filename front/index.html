@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Assistente de Lances e Leilões</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .log-container::-webkit-scrollbar { width: 6px; }
+        .log-container::-webkit-scrollbar-track { background: transparent; }
+        .log-container::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .piscar-verde { animation: piscar 1s ease-in-out; }
+        @keyframes piscar { 0% { background-color: #064e3b; } 100% { background-color: transparent; } }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-center p-6">
+
+    <div class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-5 gap-6">
+        
+        <div class="lg:col-span-2 bg-slate-800 rounded-2xl shadow-xl border border-slate-700 overflow-hidden flex flex-col h-[520px]">
+            
+            <div id="area-configuracao" class="p-6 flex-1 overflow-y-auto">
+                <h1 class="text-xl font-bold text-blue-400 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Nova Automação
+                </h1>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">URL DO LEILÃO/PRODUTO</label>
+                        <input type="url" id="url" required placeholder="https://..." class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 outline-none focus:border-blue-500">
+                    </div>
+                    <button type="button" id="btnBuscar" class="w-full bg-slate-700 hover:bg-slate-600 border border-slate-600 py-2 rounded-lg font-semibold text-sm transition-colors">
+                        Mapear XPaths (1º Passo)
+                    </button>
+
+                    <form id="formMonitoramento" class="hidden space-y-4 border-t border-slate-700 pt-4 mt-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">SELETORES ENCONTRADOS</label>
+                            <select id="seletor" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">NOME DE USUÁRIO</label>
+                            <input type="text" id="usuario" required class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 outline-none">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">INTERVALO (SEG)</label>
+                                <input type="number" id="intervalo" value="10" min="5" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">E-MAIL (ALERTA)</label>
+                                <input type="email" id="email" required placeholder="alerta@email.com" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 outline-none">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold shadow-lg mt-2 transition-all">
+                            Iniciar Monitoramento
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="area-dashboard" class="hidden p-6 flex flex-col items-center justify-center h-full text-center">
+                <div class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-blue-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                </div>
+                <h2 class="text-slate-400 font-semibold mb-1 tracking-wider uppercase text-sm">Monitorando Preço</h2>
+                <div class="text-[10px] text-slate-500 mb-4 truncate w-full px-4" id="dash-url">...</div>
+                
+                <div id="card-preco" class="bg-slate-900 border border-slate-700 w-full rounded-xl p-6 shadow-inner transition-colors duration-300">
+                    <span class="text-slate-400 text-sm font-bold uppercase">Preço Atualizado</span>
+                    <div class="text-4xl font-black text-emerald-400 mt-2" id="valor-preco">R$ ---</div>
+                </div>
+                
+                <button id="btnParar" class="mt-6 px-6 py-2 bg-red-900/40 text-red-400 hover:bg-red-900/60 hover:text-red-300 border border-red-800/50 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
+                    Parar Monitoramento
+                </button>
+            </div>
+        </div>
+
+        <div class="lg:col-span-3 bg-[#0a0f18] p-4 rounded-2xl shadow-xl border border-slate-700 flex flex-col h-[520px]">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                <span class="text-xs font-mono text-slate-400">Terminal da Sessão</span>
+            </div>
+            <div id="terminal" class="log-container flex-1 overflow-y-auto font-mono text-[12px] leading-relaxed space-y-1 pr-2 text-slate-300">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+        let interfaceAtiva = false;
+        let ultimoPreco = null;
+
+        // ETAPA 1
+        document.getElementById('btnBuscar').addEventListener('click', async () => {
+            const btn = document.getElementById('btnBuscar');
+            const url = document.getElementById('url').value;
+            if(!url) return alert('Insira a URL.');
+
+            btn.innerText = "Buscando com Playwright...";
+            btn.disabled = true;
+
+            try {
+                // A API vai limpar os logs anteriores da memória no backend
+                const req = await fetch(`${API_URL}/buscar_xpaths`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ url })
+                });
+                const data = await req.json();
+                
+                const select = document.getElementById('seletor');
+                select.innerHTML = data.xpaths.map(xp => `<option value="${xp}">${xp}</option>`).join('');
+                select.innerHTML += `<option value="auto">Busca Automática (Heurística)</option>`;
+
+                document.getElementById('formMonitoramento').classList.remove('hidden');
+                btn.innerText = "XPaths Mapeados ✔";
+            } catch (e) {
+                alert("Erro ao conectar na API Python.");
+                btn.innerText = "Mapear XPaths (1º Passo)";
+                btn.disabled = false;
+            }
+        });
+
+        // ETAPA 2
+        document.getElementById('formMonitoramento').addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            
+            const payload = {
+                url: document.getElementById('url').value,
+                usuario: document.getElementById('usuario').value,
+                email: document.getElementById('email').value,
+                seletor: document.getElementById('seletor').value,
+                intervalo: document.getElementById('intervalo').value 
+            };
+
+            document.getElementById('area-configuracao').classList.add('hidden');
+            document.getElementById('area-dashboard').classList.remove('hidden');
+            document.getElementById('area-dashboard').classList.add('flex');
+            document.getElementById('dash-url').innerText = payload.url;
+
+            await fetch(`${API_URL}/iniciar_bot`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            interfaceAtiva = true;
+            iniciarMonitoramentoPreco();
+        });
+
+        // PARAR BOT
+        document.getElementById('btnParar').addEventListener('click', async () => {
+            await fetch(`${API_URL}/parar_bot`, { method: 'POST' });
+            interfaceAtiva = false;
+            
+            document.getElementById('area-dashboard').classList.add('hidden');
+            document.getElementById('area-dashboard').classList.remove('flex');
+            document.getElementById('area-configuracao').classList.remove('hidden');
+            
+            document.getElementById('btnBuscar').disabled = false;
+            document.getElementById('btnBuscar').innerText = "Mapear XPaths (1º Passo)";
+            document.getElementById('formMonitoramento').classList.add('hidden');
+            document.getElementById('valor-preco').innerText = "R$ ---";
+            ultimoPreco = null;
+        });
+
+        // Atualiza Preço
+        function iniciarMonitoramentoPreco() {
+            setInterval(async () => {
+                if(!interfaceAtiva) return;
+                try {
+                    const req = await fetch(`${API_URL}/status`);
+                    const data = await req.json();
+                    
+                    if(data.preco_atual !== ultimoPreco && data.preco_atual > 0) {
+                        const cardPreco = document.getElementById('card-preco');
+                        document.getElementById('valor-preco').innerText = `R$ ${data.preco_atual.toFixed(2).replace('.', ',')}`;
+                        
+                        cardPreco.classList.remove('piscar-verde');
+                        void cardPreco.offsetWidth; 
+                        cardPreco.classList.add('piscar-verde');
+                        ultimoPreco = data.preco_atual;
+                    }
+                } catch(e) {}
+            }, 1000);
+        }
+
+        // Leitura de Logs (Sessão Atual apenas)
+        let quantidadeLinhasAnterior = 0;
+        setInterval(async () => {
+            try {
+                // Agora puxa a lista limpa que o backend mantém
+                const req = await fetch(`${API_URL}/logs`);
+                const data = await req.json();
+                const linhas = data.logs;
+
+                if (linhas.length !== quantidadeLinhasAnterior) {
+                    const terminal = document.getElementById('terminal');
+                    terminal.innerHTML = ''; // Redesenha com a lista de memória
+                    
+                    linhas.forEach(linha => {
+                        let cor = 'text-slate-300';
+                        if (linha.includes('[ERROR]')) cor = 'text-red-400 font-bold';
+                        if (linha.includes('[WARNING]')) cor = 'text-yellow-400';
+                        if (linha.includes('[SUCCESS]')) cor = 'text-green-400';
+                        if (linha.includes('[SYSTEM]')) cor = 'text-purple-400';
+                        
+                        terminal.innerHTML += `<div class="${cor} break-all">${linha}</div>`;
+                    });
+                    
+                    terminal.scrollTop = terminal.scrollHeight;
+                    quantidadeLinhasAnterior = linhas.length;
+                }
+            } catch(e) {}
+        }, 1500);
+    </script>
+</body>
+</html>
