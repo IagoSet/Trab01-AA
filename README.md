@@ -70,3 +70,6 @@ O sistema foi projetado para operar em ambientes web complexos, garantindo a ext
 
 ## Integrantes
 Iago de Souza Gomes - 2312130087
+Sofia Vaz da Costa Xavier - 2312130112
+Rafael Augusto Santos Abreu - 2312130113
+Lucas Farias - 2312130040
