@@ -36,8 +36,15 @@
                     <form id="formMonitoramento" class="hidden space-y-4 border-t border-slate-700 pt-4 mt-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-300 mb-1">SELETORES ENCONTRADOS</label>
-                            <select id="seletor" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm outline-none"></select>
+                            <select id="seletor" class="w-full bg-slate-900 border-slate-600 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500">
+                            </select>
                         </div>
+                        
+                        <div id="container-xpath-manual" class="hidden">
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">XPATH PERSONALIZADO</label>
+                            <input type="text" id="xpath-manual" placeholder="//div[@id='preco']" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 outline-none focus:border-blue-500">
+                        </div>
+
                         <div>
                             <label class="block text-xs font-semibold text-slate-300 mb-1">NOME DE USUÁRIO</label>
                             <input type="text" id="usuario" required class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 outline-none">
@@ -94,7 +101,6 @@
         let interfaceAtiva = false;
         let ultimoPreco = null;
 
-        // ETAPA 1
         document.getElementById('btnBuscar').addEventListener('click', async () => {
             const btn = document.getElementById('btnBuscar');
             const url = document.getElementById('url').value;
@@ -104,7 +110,6 @@
             btn.disabled = true;
 
             try {
-                // A API vai limpar os logs anteriores da memória no backend
                 const req = await fetch(`${API_URL}/buscar_xpaths`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -115,6 +120,7 @@
                 const select = document.getElementById('seletor');
                 select.innerHTML = data.xpaths.map(xp => `<option value="${xp}">${xp}</option>`).join('');
                 select.innerHTML += `<option value="auto">Busca Automática (Heurística)</option>`;
+                select.innerHTML += `<option value="manual">Personalizado (Inserir Manualmente)</option>`;
 
                 document.getElementById('formMonitoramento').classList.remove('hidden');
                 btn.innerText = "XPaths Mapeados ✔";
@@ -125,15 +131,34 @@
             }
         });
 
-        // ETAPA 2
+        document.getElementById('seletor').addEventListener('change', (e) => {
+            const container = document.getElementById('container-xpath-manual');
+            if (e.target.value === 'manual') {
+                container.classList.remove('hidden');
+                document.getElementById('xpath-manual').required = true;
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('xpath-manual').required = false;
+            }
+        });
+
         document.getElementById('formMonitoramento').addEventListener('submit', async (e) => {
             e.preventDefault(); 
             
+            let seletorFinal = document.getElementById('seletor').value;
+            if (seletorFinal === 'manual') {
+                seletorFinal = document.getElementById('xpath-manual').value;
+                if (!seletorFinal.startsWith('//')) {
+                    alert('O XPath manual deve começar com "//"');
+                    return;
+                }
+            }
+
             const payload = {
                 url: document.getElementById('url').value,
                 usuario: document.getElementById('usuario').value,
                 email: document.getElementById('email').value,
-                seletor: document.getElementById('seletor').value,
+                seletor: seletorFinal,
                 intervalo: document.getElementById('intervalo').value 
             };
 
@@ -152,15 +177,12 @@
             iniciarMonitoramentoPreco();
         });
 
-        // PARAR BOT
         document.getElementById('btnParar').addEventListener('click', async () => {
             await fetch(`${API_URL}/parar_bot`, { method: 'POST' });
             interfaceAtiva = false;
-            
             document.getElementById('area-dashboard').classList.add('hidden');
             document.getElementById('area-dashboard').classList.remove('flex');
             document.getElementById('area-configuracao').classList.remove('hidden');
-            
             document.getElementById('btnBuscar').disabled = false;
             document.getElementById('btnBuscar').innerText = "Mapear XPaths (1º Passo)";
             document.getElementById('formMonitoramento').classList.add('hidden');
@@ -168,18 +190,19 @@
             ultimoPreco = null;
         });
 
-        // Atualiza Preço
         function iniciarMonitoramentoPreco() {
             setInterval(async () => {
                 if(!interfaceAtiva) return;
                 try {
                     const req = await fetch(`${API_URL}/status`);
                     const data = await req.json();
-                    
-                    if(data.preco_atual !== ultimoPreco && data.preco_atual > 0) {
+                    if(data.preco_atual !== ultimoPreco && data.preco_atual !== "") {
                         const cardPreco = document.getElementById('card-preco');
-                        document.getElementById('valor-preco').innerText = `R$ ${data.preco_atual.toFixed(2).replace('.', ',')}`;
-                        
+                        let valorExibicao = data.preco_atual;
+                        if (typeof data.preco_atual === 'number') {
+                            valorExibicao = `R$ ${data.preco_atual.toFixed(2).replace('.', ',')}`;
+                        }
+                        document.getElementById('valor-preco').innerText = valorExibicao;
                         cardPreco.classList.remove('piscar-verde');
                         void cardPreco.offsetWidth; 
                         cardPreco.classList.add('piscar-verde');
@@ -189,29 +212,23 @@
             }, 1000);
         }
 
-        // Leitura de Logs (Sessão Atual apenas)
         let quantidadeLinhasAnterior = 0;
         setInterval(async () => {
             try {
-                // Agora puxa a lista limpa que o backend mantém
                 const req = await fetch(`${API_URL}/logs`);
                 const data = await req.json();
                 const linhas = data.logs;
-
                 if (linhas.length !== quantidadeLinhasAnterior) {
                     const terminal = document.getElementById('terminal');
-                    terminal.innerHTML = ''; // Redesenha com a lista de memória
-                    
+                    terminal.innerHTML = ''; 
                     linhas.forEach(linha => {
                         let cor = 'text-slate-300';
                         if (linha.includes('[ERROR]')) cor = 'text-red-400 font-bold';
                         if (linha.includes('[WARNING]')) cor = 'text-yellow-400';
                         if (linha.includes('[SUCCESS]')) cor = 'text-green-400';
                         if (linha.includes('[SYSTEM]')) cor = 'text-purple-400';
-                        
                         terminal.innerHTML += `<div class="${cor} break-all">${linha}</div>`;
                     });
-                    
                     terminal.scrollTop = terminal.scrollHeight;
                     quantidadeLinhasAnterior = linhas.length;
                 }

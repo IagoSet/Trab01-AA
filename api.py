@@ -27,52 +27,46 @@ logs_sessao_atual = []
 def escrever_log(mensagem, nivel="INFO"):
     timestamp = datetime.now().strftime("%H:%M:%S")
     linha = f"[{timestamp}] [{nivel}] {mensagem}"
-    with open('app.log', 'a', encoding='utf-8') as f:
-        f.write(linha + "\n")
+    print(linha)
     logs_sessao_atual.append(linha)
     if len(logs_sessao_atual) > 50:
         logs_sessao_atual.pop(0)
 
 # ==========================================
-# 1. FUNÇÃO REAL PARA BUSCAR XPATHS
+# 1. FUNÇÃO PARA BUSCAR XPATHS (Varredura Inicial)
 # ==========================================
 def extrair_xpaths_reais(url):
-    escrever_log(f"Iniciando varredura DOM (Playwright) em: {url}", "INFO")
+    escrever_log(f"Iniciando varredura DOM em: {url}", "INFO")
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
             page.goto(url, timeout=30000, wait_until='networkidle')
             
+            # Script JS para encontrar possíveis seletores de preço/hora
             js_code = """
             () => {
                 const resultados = new Set();
                 document.querySelectorAll('span, div, p, strong, h1, h2').forEach(el => {
                     const texto = (el.innerText || '').trim();
                     const classe = el.className || '';
-                    
                     const ehPreco = texto.match(/[0-9]+[.,][0-9]{2}/);
                     const ehHora = texto.match(/[0-9]{2}:[0-9]{2}/);
-                    const temClassePrice = typeof classe === 'string' && classe.toLowerCase().includes('price');
-
-                    if((ehPreco || ehHora || temClassePrice) && texto.length < 50) {
+                    if((ehPreco || ehHora) && texto.length < 50) {
                         if(typeof classe === 'string' && classe.trim() !== '') {
                             const classPrincipal = classe.trim().split(' ')[0];
-                            if(!['symbol', 'ticker', 'name'].some(s => classPrincipal.toLowerCase().includes(s))) {
-                                resultados.add(`//${el.tagName.toLowerCase()}[contains(@class, '${classPrincipal}')]`);
-                            }
+                            resultados.add(`//${el.tagName.toLowerCase()}[contains(@class, '${classPrincipal}')]`);
                         }
                     }
                 });
                 return Array.from(resultados).slice(0, 10);
             }
             """
-            seletores_js = page.evaluate(js_code)
+            seletores = page.evaluate(js_code)
             browser.close()
-            return seletores_js if seletores_js else ["//div", "//span"]
-                
+            return seletores if seletores else ["//div", "//span"]
     except Exception as e:
-        escrever_log(f"Erro na varredura inicial: {e}", "ERROR")
+        escrever_log(f"Erro na varredura: {e}", "ERROR")
         return []
 
 # ==========================================
@@ -81,9 +75,7 @@ def extrair_xpaths_reais(url):
 def enviar_email(destinatario, url, valor_antigo, valor_novo):
     EMAIL_BOT = "jejzksnlabd@gmail.com" 
     SENHA_BOT = "udzl zmrt gltt nncj"
-
-    if EMAIL_BOT == "SEU_EMAIL_AQUI@gmail.com":
-        return
+    if EMAIL_BOT == "SEU_EMAIL_AQUI@gmail.com": return
 
     assunto = "ALERTA: Alteração Detectada!"
     corpo = f"Mudança detectada!\n\nURL: {url}\nValor Antigo: {valor_antigo}\nNovo Valor: {valor_novo}"
@@ -101,36 +93,41 @@ def enviar_email(destinatario, url, valor_antigo, valor_novo):
         escrever_log(f"Erro SMTP: {e}", "ERROR")
 
 # ==========================================
-# 3. LOOP DE MONITORAMENTO (Scraping Real)
+# 3. LOOP DE MONITORAMENTO (Uso de inner_text direto)
 # ==========================================
 def loop_de_monitoramento_real():
     url = estado_bot["url"]
     seletor = estado_bot["seletor"]
     
+    # Prepara o seletor para o Playwright
     if seletor.startswith("//") and not seletor.startswith("xpath="):
         seletor = f"xpath={seletor}"
     
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+        context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+        page = context.new_page()
         
         while estado_bot["ativo"]:
             try:
                 page.goto(url, timeout=45000, wait_until='domcontentloaded')
-                time.sleep(1) 
+                time.sleep(2) 
                 
                 if seletor == 'auto':
                     texto_alvo = page.locator("body").inner_text()
                 else:
+                    # Captura o texto SEM usar page.evaluate() para evitar erros de aspas no XPath
                     elemento = page.locator(seletor).first
-                    elemento.wait_for(state="visible", timeout=10000)
-                    # Força a captura do texto visível completo, ignorando marcações internas
-                    texto_alvo = await page.evaluate(f"document.evaluate('{seletor.replace('xpath=', '')}', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText")
+                    elemento.wait_for(state="visible", timeout=15000)
+                    texto_alvo = elemento.inner_text()
                 
-                texto_alvo = " ".join(texto_alvo.split()).replace(" : ", ":")
+                if not texto_alvo:
+                    escrever_log("Elemento sem texto.", "DEBUG")
+                    continue
+
+                texto_alvo = " ".join(texto_alvo.split())
                 
-                # BUSCA HORA OU PREÇO (Regex mais abrangente para pegar tudo que parece tempo)
-                # Pega formatos como 12:30:45, 12:30 ou até números isolados se for preço
+                # Extração simples de valor
                 horas = re.findall(r'\d{1,2}:\d{2}(?::\d{2})?', texto_alvo)
                 precos = re.findall(r'\d+[.,]\d{2}', texto_alvo)
                 
@@ -141,17 +138,15 @@ def loop_de_monitoramento_real():
                 if valor_encontrado:
                     if estado_bot["preco_atual"] == "":
                         estado_bot["preco_atual"] = valor_encontrado
-                        escrever_log(f"Valor inicial registrado: {valor_encontrado}", "SUCCESS")
+                        escrever_log(f"Valor inicial: {valor_encontrado}", "SUCCESS")
                     elif valor_encontrado != estado_bot["preco_atual"]:
                         valor_antigo = estado_bot["preco_atual"]
                         estado_bot["preco_atual"] = valor_encontrado
                         escrever_log(f"MUDANÇA: {valor_antigo} -> {valor_encontrado}", "WARNING")
                         enviar_email(estado_bot["email"], url, valor_antigo, valor_encontrado)
-                else:
-                    escrever_log("Nenhum valor compatível encontrado.", "DEBUG")
                         
             except Exception as e:
-                escrever_log(f"Erro no monitor: {str(e)[:50]}", "ERROR")
+                escrever_log(f"Erro monitor: {str(e)[:60]}", "ERROR")
             
             time.sleep(int(estado_bot["intervalo"]))
         browser.close()
@@ -180,14 +175,14 @@ def iniciar_bot():
         "intervalo": int(dados.get('intervalo', 10)),
         "preco_atual": ""
     })
-    escrever_log(f"Bot iniciado para {estado_bot['url']}", "INFO")
+    escrever_log(f"Bot iniciado: {estado_bot['url']}", "INFO")
     threading.Thread(target=loop_de_monitoramento_real, daemon=True).start()
     return jsonify({"status": "Iniciado"})
 
 @app.route('/parar_bot', methods=['POST'])
 def parar_bot():
     estado_bot["ativo"] = False
-    escrever_log("Bot parado manualmente.", "WARNING")
+    escrever_log("Bot parado.", "WARNING")
     return jsonify({"status": "Parado"})
 
 @app.route('/status', methods=['GET'])
@@ -199,5 +194,5 @@ def obter_logs():
     return jsonify({"logs": logs_sessao_atual})
 
 if __name__ == '__main__':
-    escrever_log("--- Servidor API Ativo ---", "SYSTEM")
+    escrever_log("--- Servidor Ativo (Porta 5000) ---", "SYSTEM")
     app.run(port=5000)
